@@ -1,0 +1,60 @@
+{
+  "name": "Company",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "title": "Company Name"
+    },
+    "legal_name": {
+      "type": "string",
+      "title": "Legal Name"
+    },
+    "registration_number": {
+      "type": "string",
+      "title": "Registration Number"
+    },
+    "address": {
+      "type": "string",
+      "title": "Address"
+    },
+    "phone": {
+      "type": "string",
+      "title": "Phone"
+    },
+    "email": {
+      "type": "string",
+      "title": "Email"
+    },
+    "whatsapp": {
+      "type": "string",
+      "title": "WhatsApp Number"
+    },
+    "tax_number": {
+      "type": "string",
+      "title": "Tax / VAT Number"
+    },
+    "currency": {
+      "type": "string",
+      "title": "Currency",
+      "default": "AED"
+    },
+    "timezone": {
+      "type": "string",
+      "title": "Timezone",
+      "default": "Asia/Dubai"
+    },
+    "logo_url": {
+      "type": "string",
+      "title": "Logo URL"
+    },
+    "is_default": {
+      "type": "boolean",
+      "title": "Default",
+      "default": true
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

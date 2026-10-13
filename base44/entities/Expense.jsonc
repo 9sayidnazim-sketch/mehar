@@ -1,0 +1,54 @@
+{
+  "name": "Expense",
+  "type": "object",
+  "properties": {
+    "date": {
+      "type": "string",
+      "format": "date",
+      "title": "Date"
+    },
+    "category": {
+      "type": "string",
+      "title": "Category",
+      "enum": [
+        "Fabric Purchase",
+        "Thread & Accessories",
+        "Salaries",
+        "Rent",
+        "Utilities",
+        "Equipment",
+        "Marketing",
+        "Transport",
+        "Other"
+      ],
+      "default": "Other"
+    },
+    "description": {
+      "type": "string",
+      "title": "Description"
+    },
+    "amount": {
+      "type": "number",
+      "title": "Amount"
+    },
+    "payment_method": {
+      "type": "string",
+      "title": "Payment Method",
+      "enum": [
+        "Cash",
+        "Card",
+        "UPI",
+        "Bank Transfer"
+      ],
+      "default": "Cash"
+    },
+    "reference_number": {
+      "type": "string",
+      "title": "Reference Number"
+    }
+  },
+  "required": [
+    "amount",
+    "date"
+  ]
+}

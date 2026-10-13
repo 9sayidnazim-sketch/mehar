@@ -1,0 +1,40 @@
+{
+  "name": "Measurement",
+  "type": "object",
+  "properties": {
+    "customer_id": {
+      "type": "string",
+      "title": "Customer ID"
+    },
+    "customer_name": {
+      "type": "string",
+      "title": "Customer Name"
+    },
+    "template_id": {
+      "type": "string",
+      "title": "Template ID"
+    },
+    "template_name": {
+      "type": "string",
+      "title": "Template Name"
+    },
+    "values": {
+      "type": "object",
+      "title": "Measurement Values",
+      "default": {}
+    },
+    "notes": {
+      "type": "string",
+      "title": "Notes"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "title": "Date"
+    }
+  },
+  "required": [
+    "customer_id",
+    "template_id"
+  ]
+}

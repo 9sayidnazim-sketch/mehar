@@ -1,0 +1,65 @@
+{
+  "name": "Payment",
+  "type": "object",
+  "properties": {
+    "order_id": {
+      "type": "string",
+      "title": "Order ID"
+    },
+    "order_ref": {
+      "type": "string",
+      "title": "Order Reference"
+    },
+    "customer_id": {
+      "type": "string",
+      "title": "Customer ID"
+    },
+    "customer_name": {
+      "type": "string",
+      "title": "Customer Name"
+    },
+    "amount": {
+      "type": "number",
+      "title": "Amount"
+    },
+    "payment_method": {
+      "type": "string",
+      "title": "Payment Method",
+      "enum": [
+        "Cash",
+        "Card",
+        "UPI",
+        "Bank Transfer"
+      ],
+      "default": "Cash"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "title": "Date"
+    },
+    "reference_number": {
+      "type": "string",
+      "title": "Reference Number"
+    },
+    "notes": {
+      "type": "string",
+      "title": "Notes"
+    },
+    "type": {
+      "type": "string",
+      "title": "Type",
+      "enum": [
+        "payment",
+        "advance",
+        "refund"
+      ],
+      "default": "payment"
+    }
+  },
+  "required": [
+    "order_id",
+    "amount",
+    "date"
+  ]
+}

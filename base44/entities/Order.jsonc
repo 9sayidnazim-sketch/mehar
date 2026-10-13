@@ -1,0 +1,215 @@
+{
+  "name": "Order",
+  "type": "object",
+  "properties": {
+    "order_id": {
+      "type": "string",
+      "title": "Order ID"
+    },
+    "customer_id": {
+      "type": "string",
+      "title": "Customer ID"
+    },
+    "customer_name": {
+      "type": "string",
+      "title": "Customer Name"
+    },
+    "tailor_id": {
+      "type": "string",
+      "title": "Tailor ID"
+    },
+    "tailor_name": {
+      "type": "string",
+      "title": "Tailor Name"
+    },
+    "booking_date": {
+      "type": "string",
+      "format": "date",
+      "title": "Booking Date"
+    },
+    "delivery_date": {
+      "type": "string",
+      "format": "date",
+      "title": "Delivery Date"
+    },
+    "priority": {
+      "type": "string",
+      "title": "Priority",
+      "enum": [
+        "Normal",
+        "Rush",
+        "Premium"
+      ],
+      "default": "Normal"
+    },
+    "order_type": {
+      "type": "string",
+      "title": "Order Type",
+      "enum": [
+        "Standard",
+        "Alteration"
+      ],
+      "default": "Standard"
+    },
+    "status": {
+      "type": "string",
+      "title": "Status",
+      "enum": [
+        "Booked",
+        "Cutting",
+        "Assigned",
+        "Stitching",
+        "Quality Check",
+        "Trial",
+        "Alteration",
+        "Ready",
+        "Delivered",
+        "Cancelled"
+      ],
+      "default": "Booked"
+    },
+    "template_id": {
+      "type": "string",
+      "title": "Measurement Template ID"
+    },
+    "template_name": {
+      "type": "string",
+      "title": "Template Name"
+    },
+    "measurement_values": {
+      "type": "object",
+      "title": "Measurement Values",
+      "default": {}
+    },
+    "fabric_type": {
+      "type": "string",
+      "title": "Fabric Type"
+    },
+    "fabric_code": {
+      "type": "string",
+      "title": "Fabric Code"
+    },
+    "fabric_quantity": {
+      "type": "number",
+      "title": "Fabric Quantity (meters)",
+      "default": 0
+    },
+    "fabric_cost": {
+      "type": "number",
+      "title": "Fabric Cost",
+      "default": 0
+    },
+    "supplier": {
+      "type": "string",
+      "title": "Supplier"
+    },
+    "style_notes": {
+      "type": "string",
+      "title": "Style Notes"
+    },
+    "accessories": {
+      "type": "string",
+      "title": "Accessories"
+    },
+    "tailor_rate": {
+      "type": "number",
+      "title": "Tailor Rate",
+      "default": 0
+    },
+    "markup_percent": {
+      "type": "number",
+      "title": "Markup %",
+      "default": 0
+    },
+    "discount": {
+      "type": "number",
+      "title": "Discount",
+      "default": 0
+    },
+    "discount_type": {
+      "type": "string",
+      "title": "Discount Type",
+      "enum": [
+        "percent",
+        "fixed"
+      ],
+      "default": "percent"
+    },
+    "tax_percent": {
+      "type": "number",
+      "title": "Tax %",
+      "default": 0
+    },
+    "subtotal": {
+      "type": "number",
+      "title": "Subtotal",
+      "default": 0
+    },
+    "total_amount": {
+      "type": "number",
+      "title": "Total Amount",
+      "default": 0
+    },
+    "amount_paid": {
+      "type": "number",
+      "title": "Amount Paid",
+      "default": 0
+    },
+    "balance_due": {
+      "type": "number",
+      "title": "Balance Due",
+      "default": 0
+    },
+    "payment_status": {
+      "type": "string",
+      "title": "Payment Status",
+      "enum": [
+        "Paid",
+        "Partial",
+        "Pending"
+      ],
+      "default": "Pending"
+    },
+    "payment_method": {
+      "type": "string",
+      "title": "Payment Method"
+    },
+    "delivery_method": {
+      "type": "string",
+      "title": "Delivery Method",
+      "enum": [
+        "Pickup",
+        "Delivery"
+      ],
+      "default": "Pickup"
+    },
+    "remarks": {
+      "type": "string",
+      "title": "Remarks"
+    },
+    "notes": {
+      "type": "string",
+      "title": "Notes"
+    },
+    "source": {
+      "type": "string",
+      "title": "Source",
+      "enum": [
+        "manual",
+        "online"
+      ],
+      "default": "manual"
+    },
+    "online_pending": {
+      "type": "boolean",
+      "title": "Pending Online Review",
+      "default": false
+    }
+  },
+  "required": [
+    "customer_id",
+    "customer_name",
+    "booking_date",
+    "delivery_date"
+  ]
+}

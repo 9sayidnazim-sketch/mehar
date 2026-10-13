@@ -1,0 +1,58 @@
+{
+  "name": "MeasurementTemplate",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "title": "Template Name"
+    },
+    "category": {
+      "type": "string",
+      "title": "Category",
+      "enum": [
+        "Men",
+        "Women",
+        "Kids",
+        "Unisex"
+      ],
+      "default": "Unisex"
+    },
+    "fields": {
+      "type": "array",
+      "title": "Fields",
+      "items": {
+        "type": "object",
+        "properties": {
+          "field_name": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string",
+            "default": "cm"
+          },
+          "default_value": {
+            "type": "string"
+          },
+          "is_required": {
+            "type": "boolean",
+            "default": false
+          },
+          "show_in_quick_view": {
+            "type": "boolean",
+            "default": true
+          }
+        }
+      },
+      "default": []
+    },
+    "is_active": {
+      "type": "boolean",
+      "title": "Active",
+      "default": true
+    }
+  },
+  "required": [
+    "name",
+    "category"
+  ]
+}

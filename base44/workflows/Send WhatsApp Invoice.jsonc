@@ -1,0 +1,40 @@
+{
+  "name": "Send WhatsApp Invoice",
+  "description": "When a customer payment/advance is recorded during order creation, generate a PDF invoice and send it via WhatsApp automatically.",
+  "trigger": {
+    "config": {
+      "trigger_type": "entity",
+      "entity_name": "Payment",
+      "events": [
+        "create"
+      ]
+    },
+    "condition": "${ .trigger.data.type != \"refund\" }"
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "send_whatsapp_invoice",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "send_invoice": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "sendWhatsAppInvoice",
+            "args": {
+              "payment_id": "${ .trigger.entity_id }"
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Send WhatsApp invoice",
+            "description": "Generate PDF and send via WhatsApp"
+          }
+        }
+      }
+    ]
+  }
+}

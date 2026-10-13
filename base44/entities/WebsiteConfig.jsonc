@@ -1,0 +1,53 @@
+{
+  "name": "WebsiteConfig",
+  "type": "object",
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "title": "Enabled",
+      "default": false
+    },
+    "auto_accept": {
+      "type": "boolean",
+      "title": "Auto Accept Orders",
+      "default": false
+    },
+    "title": {
+      "type": "string",
+      "title": "Page Title",
+      "default": "Place Your Order"
+    },
+    "tagline": {
+      "type": "string",
+      "title": "Tagline",
+      "default": "Tailoring & retail, made easy."
+    },
+    "product_ids": {
+      "type": "array",
+      "title": "Featured Product IDs",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "garment_types": {
+      "type": "array",
+      "title": "Garment Types",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "contact_phone": {
+      "type": "string",
+      "title": "Contact Phone"
+    },
+    "contact_whatsapp": {
+      "type": "string",
+      "title": "Contact WhatsApp"
+    }
+  },
+  "required": [
+    "title"
+  ]
+}

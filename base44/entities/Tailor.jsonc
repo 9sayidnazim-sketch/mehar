@@ -1,0 +1,69 @@
+{
+  "name": "Tailor",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "title": "Name"
+    },
+    "department": {
+      "type": "string",
+      "title": "Department",
+      "default": "Workshop"
+    },
+    "phone": {
+      "type": "string",
+      "title": "Phone"
+    },
+    "email": {
+      "type": "string",
+      "title": "Email"
+    },
+    "address": {
+      "type": "string",
+      "title": "Address"
+    },
+    "specialization": {
+      "type": "string",
+      "title": "Specialization",
+      "default": "General"
+    },
+    "rate_type": {
+      "type": "string",
+      "title": "Rate Type",
+      "enum": [
+        "piecework",
+        "hourly"
+      ],
+      "default": "piecework"
+    },
+    "rate": {
+      "type": "number",
+      "title": "Rate",
+      "default": 0
+    },
+    "active": {
+      "type": "boolean",
+      "title": "Active",
+      "default": true
+    },
+    "total_orders_assigned": {
+      "type": "number",
+      "title": "Total Orders Assigned",
+      "default": 0
+    },
+    "completed_orders": {
+      "type": "number",
+      "title": "Completed Orders",
+      "default": 0
+    },
+    "monthly_earnings": {
+      "type": "number",
+      "title": "Monthly Earnings",
+      "default": 0
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

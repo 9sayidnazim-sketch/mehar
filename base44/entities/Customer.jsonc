@@ -1,0 +1,71 @@
+{
+  "name": "Customer",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "title": "Full Name"
+    },
+    "phone": {
+      "type": "string",
+      "title": "Phone"
+    },
+    "email": {
+      "type": "string",
+      "title": "Email"
+    },
+    "whatsapp": {
+      "type": "string",
+      "title": "WhatsApp Number"
+    },
+    "address": {
+      "type": "string",
+      "title": "Address"
+    },
+    "city": {
+      "type": "string",
+      "title": "City"
+    },
+    "area": {
+      "type": "string",
+      "title": "Area"
+    },
+    "postal_code": {
+      "type": "string",
+      "title": "Postal Code"
+    },
+    "status": {
+      "type": "string",
+      "title": "Status",
+      "enum": [
+        "active",
+        "inactive",
+        "blocked"
+      ],
+      "default": "active"
+    },
+    "notes": {
+      "type": "string",
+      "title": "Notes"
+    },
+    "total_orders": {
+      "type": "number",
+      "title": "Total Orders",
+      "default": 0
+    },
+    "total_spent": {
+      "type": "number",
+      "title": "Total Spent",
+      "default": 0
+    },
+    "outstanding_balance": {
+      "type": "number",
+      "title": "Outstanding Balance",
+      "default": 0
+    }
+  },
+  "required": [
+    "name",
+    "phone"
+  ]
+}

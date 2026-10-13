@@ -1,0 +1,135 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222 24% 17%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 24% 17%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 24% 17%;
+    --primary: 250 90% 60%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 250 60% 96%;
+    --secondary-foreground: 250 50% 30%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 160 84% 39%;
+    --accent-foreground: 0 0% 100%;
+    --success: 160 84% 39%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 250 90% 60%;
+    --chart-1: 250 90% 60%;
+    --chart-2: 160 84% 39%;
+    --chart-3: 38 92% 50%;
+    --chart-4: 0 84% 60%;
+    --chart-5: 199 89% 48%;
+    --radius: 0.5rem;
+    --font-heading: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+    --font-body: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+    --font-display: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 222 24% 17%;
+    --sidebar-primary: 250 90% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 250 60% 96%;
+    --sidebar-accent-foreground: 250 50% 30%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 250 90% 60%;
+  }
+
+  .dark {
+    --background: 222 47% 11%;
+    --foreground: 220 14% 96%;
+    --card: 222 40% 16%;
+    --card-foreground: 220 14% 96%;
+    --popover: 222 40% 16%;
+    --popover-foreground: 220 14% 96%;
+    --primary: 250 90% 66%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 222 30% 25%;
+    --secondary-foreground: 220 14% 96%;
+    --muted: 222 30% 25%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 160 84% 45%;
+    --accent-foreground: 0 0% 100%;
+    --success: 160 84% 45%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 55%;
+    --warning-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 222 20% 30%;
+    --input: 222 20% 30%;
+    --ring: 250 90% 66%;
+    --chart-1: 250 90% 66%;
+    --chart-2: 160 84% 45%;
+    --chart-3: 38 92% 55%;
+    --chart-4: 0 72% 51%;
+    --chart-5: 199 89% 55%;
+    --sidebar-background: 222 47% 11%;
+    --sidebar-foreground: 220 14% 96%;
+    --sidebar-primary: 250 90% 66%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 222 30% 25%;
+    --sidebar-accent-foreground: 220 14% 96%;
+    --sidebar-border: 222 20% 30%;
+    --sidebar-ring: 250 90% 66%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground font-body antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading;
+  }
+}
+
+@layer utilities {
+  .glass {
+    background: hsl(var(--card) / 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .card-shadow {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.06);
+  }
+
+  .card-shadow-lg {
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.06), 0 4px 10px rgba(0, 0, 0, 0.04);
+  }
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}
