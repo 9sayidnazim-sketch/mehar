@@ -1,39 +1,45 @@
 import { db } from '@/api/base44Client';
 import React, { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
 import StatusBadge from '@/components/StatusBadge';
 import { formatCurrency, formatDate, daysUntil } from '@/lib/mehar-utils';
 import { exportOrdersPdf } from '@/lib/pdf-utils';
 import {
-  Plus, Search, Download, ClipboardList, X, ArrowLeft
+  Plus, Search, Download, ClipboardList, ArrowLeft
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
-} from '@/components/ui/dialog';
+
 
 const STATUSES = ['Booked', 'Cutting', 'Assigned', 'Stitching', 'Quality Check', 'Trial', 'Alteration', 'Ready', 'Delivered', 'Cancelled'];
 
 export default function Orders() {
+  const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
+  const [params] = useSearchParams();
+  const [search, setSearch] = useState(() => params.get('q') || '');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [params, setParams] = useSearchParams();
 
   useEffect(() => {
     loadOrders();
   }, []);
 
   useEffect(() => {
-    if (params.get('new') === '1') {
-      // open create dialog is handled by presence of 'new'
+    const qParam = params.get('q');
+    if (qParam !== null) {
+      setSearch(qParam);
     }
   }, [params]);
+
+  useEffect(() => {
+    if (params.get('new') === '1') {
+      const custId = params.get('customer');
+      navigate(custId ? `/orders/new?customer=${custId}` : '/orders/new', { replace: true });
+    }
+  }, [params, navigate]);
 
   const loadOrders = async () => {
     try {

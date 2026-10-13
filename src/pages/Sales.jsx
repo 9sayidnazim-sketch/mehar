@@ -6,8 +6,8 @@ import { formatCurrency, formatDate } from '@/lib/mehar-utils';
 import { generateSaleInvoicePdf, downloadSaleBill } from '@/lib/pdf-utils';
 import {
   ShoppingBag, Plus, Minus, Trash2, Send, Search, Package, Receipt,
-  MessageCircle, CheckCircle2, Download, ExternalLink, RefreshCw,
-  Eye, AlertTriangle, Clock, CheckSquare, Square, FileText
+  MessageCircle, CheckCircle2, Download, RefreshCw,
+  Eye, AlertTriangle, Clock, CheckSquare, FileText
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -45,6 +45,7 @@ export default function Sales() {
   const [search, setSearch] = useState('');
   const [customer, setCustomer] = useState({ id: '', name: '', phone: '', email: '', address: '' });
   const [pricing, setPricing] = useState({ discount: 0, tax_percent: 5, amount_paid: '', payment_method: 'Cash' });
+  const [sendWhatsApp, setSendWhatsApp] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [sendingBill, setSendingBill] = useState(null);
   const [downloadingBill, setDownloadingBill] = useState(null);
@@ -54,10 +55,15 @@ export default function Sales() {
   const [waModalOpen, setWaModalOpen] = useState(false);
   const [waSale, setWaSale] = useState(null);
   const [waPhone, setWaPhone] = useState('');
-  const [waCountryCode, setWaCountryCode] = useState('971');
+  const [waCountryCode, setWaCountryCode] = useState('');
   const [waMessage, setWaMessage] = useState('');
   const [waSaveToCustomer, setWaSaveToCustomer] = useState(false);
   const [waSending, setWaSending] = useState(false);
+  const [waConfirmResend, setWaConfirmResend] = useState(false);
+  const [waHistory, setWaHistory] = useState([]);
+  const [waIdempotencyKey, setWaIdempotencyKey] = useState('');
+  const [gatewayStatus, setGatewayStatus] = useState(null);
+  const [gatewayChecking, setGatewayChecking] = useState(false);
 
   // Invoice Detail Modal State
   const [detailModalOpen, setDetailModalOpen] = useState(false);
@@ -132,21 +138,20 @@ export default function Sales() {
     });
   };
 
-  // Phase 4: Complete Sale, Auto-generate PDF & Dispatch WhatsApp Invoice
+  // Complete Sale, Auto-generate PDF & Optional WhatsApp Invoice
   const generateBill = async () => {
     if (cart.length === 0) {
       toast({ title: 'Add at least one product to the cart', variant: 'destructive' });
-      return;
-    }
-    if (!customer.phone) {
-      toast({ title: 'Customer phone is required', description: 'Needed to send the invoice via WhatsApp', variant: 'destructive' });
       return;
     }
 
     setGenerating(true);
     try {
       const saleId = `INV-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9000) + 1000)}`;
-      const normPhone = normalizePhoneNumber(customer.phone);
+      const rawPhone = customer.phone?.trim() || '';
+      const normPhone = rawPhone ? normalizePhoneNumber(rawPhone) : '';
+      const shouldDispatchWa = sendWhatsApp && Boolean(normPhone);
+
       const items = cart.map((i) => ({
         product_id: i.product_id,
         name: i.name,
@@ -164,9 +169,9 @@ export default function Sales() {
       const saleDraft = {
         sale_id: saleId,
         customer_id: customer.id || undefined,
-        customer_name: customer.name || 'Walk-in Customer',
-        customer_phone: customer.phone,
-        customer_email: customer.email,
+        customer_name: customer.name?.trim() || 'Walk-in Customer',
+        customer_phone: rawPhone || '',
+        customer_email: customer.email?.trim() || '',
         items,
         subtotal,
         discount: pricing.discount || 0,
@@ -189,7 +194,27 @@ export default function Sales() {
       // 2. Save record to persistent DB
       const createdSale = await db.entities.Sale.create(saleDraft);
 
-      // 3. Update customer stats if linked
+      // 3. Record payment in Payment entity so Payments and Accounts stay in sync
+      if (paidAmount > 0) {
+        try {
+          await db.entities.Payment.create({
+            order_id: createdSale.id,
+            order_ref: saleId,
+            customer_id: customer.id || undefined,
+            customer_name: saleDraft.customer_name,
+            amount: paidAmount,
+            payment_method: pricing.payment_method,
+            date: saleDraft.date,
+            reference_number: `POS-${saleId}`,
+            notes: `Retail POS Sale: ${saleId}`,
+            type: 'payment',
+          });
+        } catch (payErr) {
+          console.warn('Payment record sync note:', payErr);
+        }
+      }
+
+      // 4. Update customer stats if linked
       if (customer.id) {
         try {
           const cust = customers.find((c) => c.id === customer.id);
@@ -202,15 +227,11 @@ export default function Sales() {
         } catch (_) {}
       }
 
-      // 4. Trigger WhatsApp Auto-Dispatch via function invoker
+      // 5. Manual sending first: do not automatically send invoices on creation
+      // User can click "Send on WhatsApp" action manually per requirement
       let waResult = null;
-      try {
-        waResult = await db.functions.invoke('sendSaleBill', { sale_id: createdSale.id });
-      } catch (err) {
-        console.warn('Function invoke note:', err);
-      }
 
-      // 5. Pre-build Direct WhatsApp link
+      // 6. Pre-build Direct WhatsApp link
       const encodedMsg = encodeURIComponent(
         `Dear ${saleDraft.customer_name},\n` +
         `Thank you for your purchase at THREDO!\n\n` +
@@ -221,7 +242,7 @@ export default function Sales() {
         `Payment Method: ${pricing.payment_method}\n\n` +
         `Your official tax invoice has been generated. Thank you for choosing THREDO!`
       );
-      const directWaUrl = `https://wa.me/${normPhone}?text=${encodedMsg}`;
+      const directWaUrl = normPhone ? `https://wa.me/${normPhone}?text=${encodedMsg}` : '';
 
       setCheckoutSuccess({
         sale: createdSale,
@@ -230,22 +251,22 @@ export default function Sales() {
         amount: paidAmount,
         total,
         customerName: saleDraft.customer_name,
-        phone: customer.phone,
+        phone: rawPhone || 'Walk-in (No Phone)',
         normPhone,
         waUrl: waResult?.whatsapp?.url || directWaUrl,
-        waStatus: waResult?.whatsapp?.ok ? 'sent' : 'ready',
+        waStatus: waResult?.whatsapp?.ok ? 'sent' : (normPhone ? 'ready' : 'unconfigured'),
         pdfDownload: () => pdfResult.download(),
       });
 
       // Reset cart and customer form
       setCart([]);
       setCustomer({ id: '', name: '', phone: '', email: '', address: '' });
-      setPricing({ discount: 0, tax_percent: 5, amount_paid: 0, payment_method: 'Cash' });
+      setPricing({ discount: 0, tax_percent: 5, amount_paid: '', payment_method: 'Cash' });
       load();
 
       toast({
-        title: 'Sale Completed & Invoice Generated',
-        description: `Invoice ${saleId} recorded and ready for WhatsApp delivery.`
+        title: 'Sale Completed Successfully',
+        description: `Invoice ${saleId} recorded for AED ${total.toFixed(2)}.`
       });
     } catch (e) {
       console.error(e);
@@ -256,13 +277,13 @@ export default function Sales() {
   };
 
   // Open the "Send Invoice on WhatsApp" Popup
-  const openWhatsAppModal = (s) => {
+  const openWhatsAppModal = async (s) => {
     const custName = s.customer_name || 'Customer';
     const invNo = s.sale_id || (s.id ? `INV-${s.id.slice(-6).toUpperCase()}` : 'INV-0001');
     const initialPhone = s.sent_to_number || s.customer_phone || '';
 
-    // Detect country code from phone or default to UAE 971
-    let detectedCountry = '971';
+    // Detect country code from phone; do not silently assume any country if missing
+    let detectedCountry = '';
     const cleanDigits = initialPhone.replace(/[^0-9]/g, '');
     for (const c of COUNTRY_CODES) {
       if (cleanDigits.startsWith(c.code)) {
@@ -274,9 +295,32 @@ export default function Sales() {
     setWaSale(s);
     setWaPhone(initialPhone);
     setWaCountryCode(detectedCountry);
-    setWaMessage(`Hello ${custName}, your invoice ${invNo} is attached.\nThank you for your purchase.`);
+    setWaMessage(`Hello ${custName}, here is your Thredo invoice ${invNo}. Thank you.`);
     setWaSaveToCustomer(false);
+    setWaConfirmResend(false);
+    setWaIdempotencyKey(`idem-${s.id}-${Date.now()}`);
     setWaModalOpen(true);
+
+    // Live Gateway status check & send history retrieval
+    try {
+      setGatewayChecking(true);
+      const [statusRes, histRes] = await Promise.all([
+        fetch('/api/invoices/whatsapp-status'),
+        fetch(`/api/invoices/whatsapp-history?invoice_id=${s.id}`)
+      ]);
+
+      if (statusRes.ok) {
+        const data = await statusRes.json();
+        setGatewayStatus(data);
+      }
+      if (histRes.ok) {
+        const histData = await histRes.json();
+        setWaHistory(histData.records || []);
+      }
+    } catch (_) {
+    } finally {
+      setGatewayChecking(false);
+    }
   };
 
   // Execute Sending from the Popup
@@ -285,18 +329,23 @@ export default function Sales() {
     const check = formatWhatsAppNumber(waPhone, waCountryCode);
     if (!check.isValid) {
       toast({
-        title: 'Invalid WhatsApp Number',
-        description: 'Please enter a valid WhatsApp number',
+        title: 'Country Code Required',
+        description: check.error || 'Please enter a valid WhatsApp number with country code. Do not assume a country.',
         variant: 'destructive'
       });
       return;
     }
 
     setWaSending(true);
+    const idempotencyKey = waIdempotencyKey || `idem-${waSale.id}-${Date.now()}`;
+
     try {
       const res = await db.functions.invoke('sendSaleBill', {
         sale_id: waSale.id,
-        phone: waPhone,
+        idempotency_key: idempotencyKey,
+        phone: check.formatted,
+        preview_recipient: check.formatted,
+        confirm_resend: waConfirmResend,
         country_code: waCountryCode,
         custom_message: waMessage,
         update_customer_phone: waSaveToCustomer
@@ -304,18 +353,43 @@ export default function Sales() {
 
       if (res.success) {
         toast({
-          title: 'Invoice Sent',
-          description: `Invoice sent to +${res.formatted_number || check.formatted}`
+          title: 'Invoice Submitted to WhatsApp Gateway',
+          description: `Invoice ${waSale.sale_id} submitted for dispatch to +${res.formatted_number || check.formatted} (Status: Submitted).`
         });
         setWaModalOpen(false);
         await load();
         if (detailSale && detailSale.id === waSale.id && res.sale) {
           setDetailSale(res.sale);
         }
+      } else if (res.duplicate_prevented) {
+        toast({
+          title: 'Duplicate Send Prevented',
+          description: res.error || 'This invoice has already been sent. Please confirm deliberate resend after reviewing history.',
+          variant: 'destructive'
+        });
+      } else if (res.phone_changed) {
+        toast({
+          title: 'Recipient Number Changed',
+          description: res.error || 'Customer phone number changed after preview. Confirmation required.',
+          variant: 'destructive'
+        });
+      } else if (res.pairing_needed) {
+        toast({
+          title: 'WhatsApp is not paired',
+          description: res.error || 'Connect the sender account before sending this invoice.',
+          variant: 'destructive'
+        });
+      } else if (res.status === 'unknown') {
+        toast({
+          title: 'Gateway Timeout (Result Unknown)',
+          description: 'Gateway timed out. Result is unknown — do not automatically resend.',
+          variant: 'destructive'
+        });
+        await load();
       } else {
         toast({
-          title: 'WhatsApp Delivery Failed',
-          description: res.error || 'Failed to dispatch message via gateway',
+          title: 'WhatsApp Dispatch Failed',
+          description: res.error || 'Failed to dispatch invoice via gateway',
           variant: 'destructive'
         });
         await load();
@@ -552,12 +626,12 @@ export default function Sales() {
                     />
                   </div>
                   <div>
-                    <Label className="text-xs font-medium">Phone (WhatsApp) *</Label>
+                    <Label className="text-xs font-medium">Phone (WhatsApp) <span className="text-muted-foreground font-normal">(optional)</span></Label>
                     <Input
                       value={customer.phone}
                       onChange={(e) => setCustomer({ ...customer, phone: e.target.value })}
                       className="mt-1 h-8 text-xs font-mono"
-                      placeholder="+971 50..."
+                      placeholder="+971 50... (optional for walk-in)"
                     />
                   </div>
                 </div>
@@ -654,6 +728,20 @@ export default function Sales() {
                   )}
                 </div>
 
+                {/* WhatsApp Dispatch Toggle */}
+                <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-foreground py-0.5">
+                  <input
+                    type="checkbox"
+                    checked={sendWhatsApp}
+                    onChange={(e) => setSendWhatsApp(e.target.checked)}
+                    className="rounded border-border text-primary focus:ring-primary h-4 w-4"
+                  />
+                  <span className="flex items-center gap-1.5">
+                    <MessageCircle className="h-3.5 w-3.5 text-emerald-600" />
+                    Send Invoice on WhatsApp {customer.phone ? `(${customer.phone})` : '(if phone provided)'}
+                  </span>
+                </label>
+
                 <Button
                   onClick={generateBill}
                   disabled={generating || cart.length === 0}
@@ -662,7 +750,7 @@ export default function Sales() {
                   {generating ? (
                     <><div className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" /> Generating Invoice & PDF...</>
                   ) : (
-                    <><Send className="h-4 w-4" /> Complete Sale & WhatsApp Invoice</>
+                    <><Receipt className="h-4 w-4" /> Complete Sale {sendWhatsApp && customer.phone ? '& Send WhatsApp' : ''}</>
                   )}
                 </Button>
               </div>
@@ -801,21 +889,41 @@ export default function Sales() {
                         {formatCurrency(s.total)}
                       </td>
                       <td className="py-3 px-3 text-center">
-                        <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${
-                          isSent
-                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
-                            : isFailed
-                            ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
-                            : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
-                        }`}>
-                          <MessageCircle className="h-3 w-3" />
-                          {isSent ? 'Sent' : isFailed ? 'Failed' : 'Pending'}
-                        </span>
-                        {s.sent_to_number && (
-                          <p className="text-[10px] text-muted-foreground font-mono mt-0.5">
-                            +{s.sent_to_number}
-                          </p>
-                        )}
+                        {(() => {
+                          const status = (s.whatsapp_status || (s.bill_sent_whatsapp ? 'submitted' : 'pending')).toLowerCase();
+                          let badgeClass = 'bg-muted text-muted-foreground border-border';
+                          let label = 'Not Sent';
+                          if (status === 'read') {
+                            badgeClass = 'bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300 border-sky-300 dark:border-sky-800';
+                            label = 'Read';
+                          } else if (status === 'delivered') {
+                            badgeClass = 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800';
+                            label = 'Delivered';
+                          } else if (status === 'submitted' || status === 'sent') {
+                            badgeClass = 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300 border-indigo-300 dark:border-indigo-800';
+                            label = 'Submitted';
+                          } else if (status === 'unknown') {
+                            badgeClass = 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border-amber-300 dark:border-amber-800';
+                            label = 'Unknown';
+                          } else if (status === 'failed') {
+                            badgeClass = 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border-rose-300 dark:border-rose-800';
+                            label = 'Failed';
+                          }
+
+                          return (
+                            <div>
+                              <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium border ${badgeClass}`}>
+                                <MessageCircle className="h-3 w-3" />
+                                {label}
+                              </span>
+                              {s.sent_to_number && (
+                                <p className="text-[10px] text-muted-foreground font-mono mt-0.5">
+                                  +{s.sent_to_number}
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </td>
                       <td className="py-3 px-3 text-right">
                         <div className="flex items-center justify-end gap-1.5">
@@ -877,22 +985,90 @@ export default function Sales() {
 
           {waSale && (() => {
             const phoneCheck = formatWhatsAppNumber(waPhone, waCountryCode);
-            const isAlreadySent = waSale.whatsapp_status === 'sent' || waSale.bill_sent_whatsapp;
+            const isAlreadySent = waSale.whatsapp_status === 'pending' || waSale.whatsapp_status === 'submitted' || waSale.whatsapp_status === 'sent' || waSale.whatsapp_status === 'delivered' || waSale.whatsapp_status === 'unknown' || waSale.bill_sent_whatsapp || (waHistory && waHistory.length > 0);
 
             return (
               <div className="space-y-4 py-2">
-                {/* Warning if already sent */}
-                {isAlreadySent && (
-                  <div className="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/40 p-3 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2.5">
-                    <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+                {/* Prominently Show Destination Number Before Sending */}
+                <div className="rounded-xl border border-emerald-500/30 bg-emerald-50/60 dark:bg-emerald-950/30 p-3.5 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-emerald-900 dark:text-emerald-300 flex items-center gap-1.5">
+                      <MessageCircle className="h-4 w-4 text-emerald-600" />
+                      Destination Recipient
+                    </span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-200/60 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300">
+                      Invoice Attachment Target
+                    </span>
+                  </div>
+                  <div className="flex items-baseline justify-between pt-1">
+                    <span className="text-base font-mono font-bold text-foreground">
+                      {phoneCheck.formatted ? `+${phoneCheck.formatted}` : (waPhone ? waPhone : 'No number provided')}
+                    </span>
+                    <span className="text-xs">
+                      {phoneCheck.isValid ? (
+                        <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                          ✓ Verified with country code
+                        </span>
+                      ) : (
+                        <span className="text-destructive font-semibold">
+                          ⚠ Country code required
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    PDF Attachment: <span className="font-mono text-foreground font-medium">invoice-{waSale.sale_id}.pdf</span>
+                  </p>
+                </div>
+
+                {/* Orbit Gateway Status Alerts */}
+                {gatewayStatus?.errorCategory === 'unauthorized' && (
+                  <div className="rounded-lg border border-rose-300 bg-rose-50 dark:bg-rose-950/40 p-3 text-xs text-rose-900 dark:text-rose-200 flex items-start gap-2.5">
+                    <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-rose-600 dark:text-rose-400" />
                     <div>
-                      <p className="font-semibold">
-                        Already sent to +{waSale.sent_to_number || waSale.customer_phone}{waSale.sent_at ? ` on ${formatDate(waSale.sent_at)}` : ''}. Send again?
-                      </p>
-                      <p className="text-[11px] opacity-80 mt-0.5">
-                        A copy was previously sent to this customer. Clicking Send will resend the invoice message and PDF.
+                      <p className="font-semibold">Authentication Failed (HTTP 401 Unauthorized)</p>
+                      <p className="text-[11px] opacity-90 mt-0.5">
+                        The Orbit instance token is unverified or invalid. Connect the sender account and configure a valid instance token before sending.
                       </p>
                     </div>
+                  </div>
+                )}
+
+                {gatewayStatus && !gatewayStatus.loggedIn && gatewayStatus.errorCategory !== 'unauthorized' && (
+                  <div className="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/40 p-3 text-xs text-amber-900 dark:text-amber-200 flex items-start gap-2.5">
+                    <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+                    <div>
+                      <p className="font-semibold">WhatsApp is not paired</p>
+                      <p className="text-[11px] opacity-90 mt-0.5">
+                        Connect the sender account before sending this invoice.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Duplicate Send Protection & Confirmed Resend Action */}
+                {isAlreadySent && (
+                  <div className="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/40 p-3 text-xs text-amber-800 dark:text-amber-300 space-y-2">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+                      <div>
+                        <p className="font-semibold">
+                          Active Dispatch Record Exists ({waSale.sent_at ? formatDate(waSale.sent_at) : 'Submitted'})
+                        </p>
+                        <p className="text-[11px] opacity-80 mt-0.5">
+                          This invoice already has an active send record. Any deliberate resend must be a separately confirmed action after reviewing send history.
+                        </p>
+                      </div>
+                    </div>
+                    <label className="flex items-center gap-2 cursor-pointer pt-1 font-semibold text-amber-900 dark:text-amber-200 select-none">
+                      <input
+                        type="checkbox"
+                        checked={waConfirmResend}
+                        onChange={(e) => setWaConfirmResend(e.target.checked)}
+                        className="h-4 w-4 rounded border-amber-400 text-amber-600 focus:ring-amber-500"
+                      />
+                      I confirm deliberate resend of this invoice after reviewing history
+                    </label>
                   </div>
                 )}
 
@@ -930,7 +1106,7 @@ export default function Sales() {
                       <Label className="text-xs font-medium">Country Code</Label>
                       <Select value={waCountryCode} onValueChange={setWaCountryCode}>
                         <SelectTrigger className="mt-1 h-9 text-xs">
-                          <SelectValue />
+                          <SelectValue placeholder="Select Code" />
                         </SelectTrigger>
                         <SelectContent>
                           {COUNTRY_CODES.map((c) => (
@@ -942,11 +1118,11 @@ export default function Sales() {
                       </Select>
                     </div>
                     <div className="col-span-2">
-                      <Label className="text-xs font-medium">WhatsApp Phone Number *</Label>
+                      <Label className="text-xs font-medium">Customer Phone Number *</Label>
                       <Input
                         value={waPhone}
                         onChange={(e) => setWaPhone(e.target.value)}
-                        placeholder="e.g. 52 872 4090 or +971 50..."
+                        placeholder="e.g. +971 50 123 4567 or +63 956 244 1681"
                         className="mt-1 h-9 text-xs font-mono font-medium"
                       />
                     </div>
@@ -955,7 +1131,7 @@ export default function Sales() {
                   {/* Real-time Formatted Number Preview & Validation Feedback */}
                   <div className="rounded-lg bg-muted/50 p-2.5 text-xs space-y-1">
                     <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground text-[11px]">Formatted WhatsApp Number:</span>
+                      <span className="text-muted-foreground text-[11px]">Validated Destination (with Country Code):</span>
                       <span className={`font-mono font-bold ${
                         phoneCheck.isValid ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'
                       }`}>
@@ -965,9 +1141,9 @@ export default function Sales() {
 
                     {phoneCheck.formatted ? (
                       <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                        <span>Digits: {phoneCheck.formatted.length} (Valid: 8 to 15 digits)</span>
+                        <span>Length: {phoneCheck.formatted.length} digits (E.164 rule: 8 to 15 digits)</span>
                         <span className={phoneCheck.isValid ? 'text-emerald-600 font-semibold' : 'text-destructive font-semibold'}>
-                          {phoneCheck.isValid ? '✓ Valid format' : '✗ Invalid length'}
+                          {phoneCheck.isValid ? '✓ Country code present' : '✗ Invalid length'}
                         </span>
                       </div>
                     ) : null}
@@ -975,7 +1151,7 @@ export default function Sales() {
                     {/* Red Error Message if Invalid */}
                     {!phoneCheck.isValid && waPhone.trim() ? (
                       <p className="text-xs font-semibold text-destructive mt-1">
-                        Please enter a valid WhatsApp number
+                        {phoneCheck.error || 'Please enter a valid WhatsApp number with country code'}
                       </p>
                     ) : null}
                   </div>
@@ -988,22 +1164,22 @@ export default function Sales() {
                       onChange={(e) => setWaSaveToCustomer(e.target.checked)}
                       className="h-4 w-4 rounded border-border text-emerald-600 focus:ring-emerald-500"
                     />
-                    Save this number to the customer record
+                    Save this verified number to customer record
                   </label>
                 </div>
 
                 {/* Optional Message Box */}
                 <div>
-                  <Label className="text-xs font-medium">Optional Message Box</Label>
+                  <Label className="text-xs font-medium">Message Caption</Label>
                   <textarea
                     value={waMessage}
                     onChange={(e) => setWaMessage(e.target.value)}
-                    rows={3}
+                    rows={2}
                     className="mt-1 w-full rounded-md border border-input bg-background p-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20"
-                    placeholder="Hello [customer name], your invoice [invoice number] is attached..."
+                    placeholder="Hello [customer name], here is your Thredo invoice [invoice number]..."
                   />
                   <p className="mt-0.5 text-[10px] text-muted-foreground">
-                    The PDF invoice document will be automatically attached and sent following this message.
+                    Attached document: <span className="font-mono">invoice-{waSale.sale_id}.pdf</span> (generated server-side)
                   </p>
                 </div>
 
@@ -1012,25 +1188,45 @@ export default function Sales() {
                   <div className="rounded-lg border border-border bg-card p-3 text-xs space-y-2">
                     <div className="flex items-center justify-between font-semibold">
                       <span className="flex items-center gap-1.5 text-foreground text-xs">
-                        <Clock className="h-3.5 w-3.5 text-muted-foreground" /> Sent History ({waSale.whatsapp_history.length})
+                        <Clock className="h-3.5 w-3.5 text-muted-foreground" /> Dispatch History ({waSale.whatsapp_history.length})
                       </span>
                     </div>
                     <div className="max-h-28 overflow-y-auto space-y-1.5 divide-y divide-border/40">
-                      {waSale.whatsapp_history.map((h, idx) => (
-                        <div key={idx} className="pt-1.5 first:pt-0 flex items-center justify-between text-[11px]">
-                          <div>
-                            <span className="font-mono font-medium text-foreground">+{h.number}</span>
-                            <span className="text-muted-foreground ml-2">{formatDate(h.sent_at)}</span>
+                      {waSale.whatsapp_history.map((h, idx) => {
+                        const hStatus = (h.status || 'submitted').toLowerCase();
+                        let badgeColor = 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300';
+                        let label = 'Submitted';
+                        if (hStatus === 'read') {
+                          badgeColor = 'bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300';
+                          label = 'Read';
+                        } else if (hStatus === 'delivered') {
+                          badgeColor = 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300';
+                          label = 'Delivered';
+                        } else if (hStatus === 'unknown') {
+                          badgeColor = 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300';
+                          label = 'Unknown';
+                        } else if (hStatus === 'failed') {
+                          badgeColor = 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300';
+                          label = 'Failed';
+                        }
+
+                        return (
+                          <div key={idx} className="pt-1.5 first:pt-0 flex items-center justify-between text-[11px]">
+                            <div>
+                              <span className="font-mono font-medium text-foreground">
+                                {h.number ? (h.number.startsWith('+') ? h.number : `+${h.number}`) : '—'}
+                              </span>
+                              <span className="text-muted-foreground ml-2">{formatDate(h.sent_at)}</span>
+                              {h.message_id && (
+                                <span className="text-[10px] text-muted-foreground font-mono ml-1.5">[{h.message_id.slice(-6)}]</span>
+                              )}
+                            </div>
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${badgeColor}`}>
+                              {label}
+                            </span>
                           </div>
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-                            h.status === 'sent'
-                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
-                              : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
-                          }`}>
-                            {h.status === 'sent' ? 'Sent' : 'Failed'}
-                          </span>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -1058,13 +1254,18 @@ export default function Sales() {
             </Button>
             <Button
               onClick={handleSendWhatsApp}
-              disabled={!waSale || !formatWhatsAppNumber(waPhone, waCountryCode).isValid || waSending}
+              disabled={
+                !waSale ||
+                !formatWhatsAppNumber(waPhone, waCountryCode).isValid ||
+                waSending ||
+                (isAlreadySent && !waConfirmResend)
+              }
               className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs shadow-sm"
             >
               {waSending ? (
-                <><RefreshCw className="h-3.5 w-3.5 animate-spin" /> Sending...</>
+                <><RefreshCw className="h-3.5 w-3.5 animate-spin" /> Submitting to WhatsApp...</>
               ) : (
-                <><Send className="h-3.5 w-3.5" /> Send</>
+                <><Send className="h-3.5 w-3.5" /> Send Invoice on WhatsApp</>
               )}
             </Button>
           </DialogFooter>

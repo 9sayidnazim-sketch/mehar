@@ -1,7 +1,7 @@
 import { db } from '@/api/base44Client';
 import React, { useState } from 'react';
 
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter

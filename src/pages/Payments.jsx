@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 
 import { formatCurrency, formatDate } from '@/lib/mehar-utils';
 import { exportPaymentsPdf } from '@/lib/pdf-utils';
-import { CreditCard, Plus, Wallet, TrendingDown, Download, X } from 'lucide-react';
+import { CreditCard, Plus, Wallet, TrendingDown, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -93,7 +93,13 @@ export default function Payments() {
                   <motion.tr key={p.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.01 }} className="border-b border-border/50 last:border-0 hover:bg-muted/30">
                     <td className="px-4 py-3 text-muted-foreground">{formatDate(p.date)}</td>
                     <td className="px-4 py-3">
-                      {p.order_id ? <Link to={`/orders/${p.order_id}`} className="font-medium text-primary hover:underline">{p.order_ref || p.order_id.slice(-6)}</Link> : '—'}
+                      {p.order_id ? (
+                        <Link to={`/orders/${p.order_id}`} className="font-medium text-primary hover:underline">
+                          {p.order_ref || (p.order_id.length >= 6 ? p.order_id.slice(-6) : p.order_id)}
+                        </Link>
+                      ) : (
+                        <span className="text-muted-foreground">{p.order_ref || 'Retail Sale'}</span>
+                      )}
                     </td>
                     <td className="px-4 py-3">{p.customer_name}</td>
                     <td className="px-4 py-3">{p.payment_method}</td>
@@ -128,10 +134,22 @@ function RecordPaymentDialog({ open, onClose, onCreated, orders, preOrderId }) {
   const [saving, setSaving] = useState(false);
 
   React.useEffect(() => {
-    if (open && preOrderId) setOrderId(preOrderId);
-  }, [open, preOrderId]);
+    if (open && preOrderId) {
+      setOrderId(preOrderId);
+      const found = orders.find((o) => o.id === preOrderId);
+      if (found && found.balance_due > 0) setAmount(found.balance_due);
+    }
+  }, [open, preOrderId, orders]);
 
   const selectedOrder = orders.find((o) => o.id === orderId);
+
+  const handleSelectOrder = (id) => {
+    setOrderId(id);
+    const found = orders.find((o) => o.id === id);
+    if (found && found.balance_due > 0) {
+      setAmount(found.balance_due);
+    }
+  };
 
   const submit = async () => {
     if (!orderId || !amount) return;
@@ -143,18 +161,18 @@ function RecordPaymentDialog({ open, onClose, onCreated, orders, preOrderId }) {
         order_ref: selectedOrder?.order_id,
         customer_id: selectedOrder?.customer_id,
         customer_name: selectedOrder?.customer_name,
-        amount,
+        amount: Number(amount),
         payment_method: method,
         date: today,
         reference_number: reference,
         type: 'payment',
       });
       // Update order
-      const newPaid = (selectedOrder?.amount_paid || 0) + amount;
+      const newPaid = (selectedOrder?.amount_paid || 0) + Number(amount);
       const total = selectedOrder?.total_amount || 0;
       await db.entities.Order.update(orderId, {
         amount_paid: newPaid,
-        balance_due: total - newPaid,
+        balance_due: Math.max(0, total - newPaid),
         payment_status: newPaid >= total ? 'Paid' : newPaid > 0 ? 'Partial' : 'Pending',
       });
       setOrderId(''); setAmount(0); setMethod('Cash'); setReference('');
@@ -171,11 +189,11 @@ function RecordPaymentDialog({ open, onClose, onCreated, orders, preOrderId }) {
         <div className="space-y-3 py-2">
           <div className="space-y-1.5">
             <Label>Order *</Label>
-            <Select value={orderId} onValueChange={setOrderId}>
+            <Select value={orderId} onValueChange={handleSelectOrder}>
               <SelectTrigger><SelectValue placeholder="Select order..." /></SelectTrigger>
               <SelectContent>
                 {orders.map((o) => (
-                  <SelectItem key={o.id} value={o.id}>{o.order_id || o.id.slice(-6)} — {o.customer_name} (Due: {formatCurrency(o.balance_due)})</SelectItem>
+                  <SelectItem key={o.id} value={o.id}>{o.order_id || (o.id && o.id.length >= 6 ? o.id.slice(-6) : (o.id || 'Order'))} — {o.customer_name} (Due: {formatCurrency(o.balance_due)})</SelectItem>
                 ))}
               </SelectContent>
             </Select>

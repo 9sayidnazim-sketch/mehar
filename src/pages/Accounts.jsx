@@ -37,7 +37,11 @@ export default function Accounts() {
     const { payments, expenses, orders, sales } = data;
     const pos = (n) => Math.max(0, n || 0);
 
-    const income = payments.filter((p) => p.type !== 'refund').reduce((s, p) => s + (p.amount || 0), 0);
+    const paymentSaleIds = new Set(payments.map((p) => p.order_id).filter(Boolean));
+    const extraSalesIncome = sales
+      .filter((s) => !paymentSaleIds.has(s.id) && s.status !== 'Cancelled' && s.status !== 'Refunded')
+      .reduce((acc, s) => acc + (s.amount_paid || 0), 0);
+    const income = payments.filter((p) => p.type !== 'refund').reduce((s, p) => s + (p.amount || 0), 0) + extraSalesIncome;
     const refunds = payments.filter((p) => p.type === 'refund').reduce((s, p) => s + (p.amount || 0), 0);
     const recordedExpenses = expenses.reduce((s, x) => s + (x.amount || 0), 0);
     const productionCosts = orders

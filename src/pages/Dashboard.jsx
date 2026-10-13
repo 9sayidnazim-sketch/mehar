@@ -33,12 +33,12 @@ const STATUS_COLORS = {
 };
 
 const quickActions = [
-  { label: 'New Order', icon: Plus, accent: 'bg-violet-600', pick: 'customer', pickTo: (c) => `/orders/new?customer=${c.id}` },
-  { label: 'New Sale', icon: ShoppingCart, accent: 'bg-rose-600', pick: 'customer', pickTo: (c) => `/sales?customer=${c.id}` },
+  { label: 'New Order', icon: Plus, to: '/orders/new', accent: 'bg-violet-600' },
+  { label: 'New Sale (POS)', icon: ShoppingCart, to: '/sales', accent: 'bg-rose-600' },
   { label: 'Search Order', icon: Search, accent: 'bg-blue-600', pick: 'order', pickTo: (o) => `/orders/${o.id}` },
   { label: 'Record Payment', icon: CreditCard, accent: 'bg-amber-600', pick: 'order', pickTo: (o) => `/payments?order=${o.id}` },
-  { label: 'New Customer', icon: UserPlus, to: '/customers', accent: 'bg-indigo-600' },
-  { label: 'Manage Tailors', icon: Scissors, to: '/tailors', accent: 'bg-teal-600' },
+  { label: 'New Customer', icon: UserPlus, to: '/customers?new=1', accent: 'bg-indigo-600' },
+  { label: 'Workshop', icon: Scissors, to: '/tailors', accent: 'bg-teal-600' },
   { label: 'All Orders', icon: Package, to: '/orders', accent: 'bg-emerald-600' },
   { label: 'Settings', icon: SettingsIcon, to: '/settings', accent: 'bg-slate-600' },
 ];
@@ -150,7 +150,7 @@ export default function Dashboard() {
           <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-sm text-muted-foreground">Welcome back — here's your tailoring business at a glance</p>
         </div>
-        <Link to="/orders?new=1">
+        <Link to="/orders/new">
           <Button className="gap-2 bg-primary hover:bg-primary/90">
             <Plus className="h-4 w-4" /> New Order
           </Button>

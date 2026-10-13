@@ -5,8 +5,7 @@ import { motion } from 'framer-motion';
 
 import { formatCurrency } from '@/lib/mehar-utils';
 import {
-  ArrowLeft, User, Calendar, Ruler, Shirt, Sparkles, DollarSign,
-  Truck, Save, X, Plus, Search
+  ArrowLeft, User, Calendar, Ruler, Shirt, DollarSign, Save, Plus, Search
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +15,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { cn } from '@/lib/utils';
 
 export default function OrderCreate() {
   const navigate = useNavigate();
@@ -326,12 +326,12 @@ export default function OrderCreate() {
               <Label>Assign Tailor (optional)</Label>
               <Select value={form.tailor_id} onValueChange={(v) => {
                 const t = tailors.find((x) => x.id === v);
-                setForm({ ...form, tailor_id: v, tailor_name: t?.name || '', tailor_rate: t?.rate || 0 });
+                setForm({ ...form, tailor_id: v, tailor_name: t?.name || '', tailor_rate: t?.tailor_rate || t?.rate || 0 });
               }}>
                 <SelectTrigger><SelectValue placeholder="Select tailor..." /></SelectTrigger>
                 <SelectContent>
                   {tailors.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>{t.name} — {t.specialization}</SelectItem>
+                    <SelectItem key={t.id} value={t.id}>{t.name} — {t.specialization || t.specialty || 'General'}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -345,32 +345,40 @@ export default function OrderCreate() {
             <Select value={form.template_id} onValueChange={(v) => {
               const t = templates.find((x) => x.id === v);
               const vals = {};
-              t?.fields?.forEach((f) => { vals[f.field_name] = f.default_value || ''; });
+              t?.fields?.forEach((f) => {
+                const fn = f.field_name || f.name;
+                if (fn) vals[fn] = f.default_value || '';
+              });
               setForm({ ...form, template_id: v, template_name: t?.name || '', measurement_values: vals });
             }}>
               <SelectTrigger><SelectValue placeholder="Select template..." /></SelectTrigger>
               <SelectContent>
                 {templates.map((t) => (
-                  <SelectItem key={t.id} value={t.id}>{t.name} ({t.category})</SelectItem>
+                  <SelectItem key={t.id} value={t.id}>{t.name} ({t.category || t.garment_type || 'Custom'})</SelectItem>
                 ))}
               </SelectContent>
             </Select>
             {selectedTemplate?.fields?.length > 0 && (
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                {selectedTemplate.fields.map((f, i) => (
-                  <div key={i} className="space-y-1">
-                    <Label className="text-xs">{f.field_name} {f.is_required && '*'}</Label>
-                    <Input
-                      value={form.measurement_values[f.field_name] || ''}
-                      onChange={(e) => setForm({
-                        ...form,
-                        measurement_values: { ...form.measurement_values, [f.field_name]: e.target.value }
-                      })}
-                      placeholder={f.unit || 'cm'}
-                      className="h-9"
-                    />
-                  </div>
-                ))}
+                {selectedTemplate.fields.map((f, i) => {
+                  const fName = f.field_name || f.name || `Field ${i + 1}`;
+                  const isReq = f.is_required || f.required;
+                  const unitStr = f.unit || f.default_unit || 'in';
+                  return (
+                    <div key={i} className="space-y-1">
+                      <Label className="text-xs">{fName} {isReq && '*'}</Label>
+                      <Input
+                        value={form.measurement_values[fName] || ''}
+                        onChange={(e) => setForm({
+                          ...form,
+                          measurement_values: { ...form.measurement_values, [fName]: e.target.value }
+                        })}
+                        placeholder={unitStr}
+                        className="h-9"
+                      />
+                    </div>
+                  );
+                })}
               </div>
             )}
             <div className="space-y-1.5">

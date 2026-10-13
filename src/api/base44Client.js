@@ -41,57 +41,60 @@ const DEFAULT_CUSTOMERS = [
 ];
 
 const DEFAULT_TAILORS = [
-  { id: 'tl-1', name: 'Master Ahmed Al-Fayed', specialty: 'Cutting & Master Pattern', phone: '+971 50 111 2233', email: 'ahmed@thredo.ae', total_orders_assigned: 18, completed_orders: 16, tailor_rate: 140, active: true, created_date: '2026-08-01T08:00:00Z' },
-  { id: 'tl-2', name: 'Tariq Mahmood', specialty: 'Kandora & Collar Finishing', phone: '+971 50 222 3344', email: 'tariq@thredo.ae', total_orders_assigned: 24, completed_orders: 22, tailor_rate: 90, active: true, created_date: '2026-08-05T08:00:00Z' },
-  { id: 'tl-3', name: 'Farhan Ali', specialty: 'Bespoke Suits & Blazers', phone: '+971 50 333 4455', email: 'farhan@thredo.ae', total_orders_assigned: 15, completed_orders: 13, tailor_rate: 180, active: true, created_date: '2026-08-10T08:00:00Z' },
+  { id: 'tl-1', name: 'Master Ahmed Al-Fayed', specialization: 'Cutting & Master Pattern', specialty: 'Cutting & Master Pattern', department: 'Workshop', phone: '+971 50 111 2233', email: 'ahmed@thredo.ae', total_orders_assigned: 18, completed_orders: 16, rate: 140, tailor_rate: 140, active: true, created_date: '2026-08-01T08:00:00Z' },
+  { id: 'tl-2', name: 'Tariq Mahmood', specialization: 'Kandora & Collar Finishing', specialty: 'Kandora & Collar Finishing', department: 'Workshop', phone: '+971 50 222 3344', email: 'tariq@thredo.ae', total_orders_assigned: 24, completed_orders: 22, rate: 90, tailor_rate: 90, active: true, created_date: '2026-08-05T08:00:00Z' },
+  { id: 'tl-3', name: 'Farhan Ali', specialization: 'Bespoke Suits & Blazers', specialty: 'Bespoke Suits & Blazers', department: 'Workshop', phone: '+971 50 333 4455', email: 'farhan@thredo.ae', total_orders_assigned: 15, completed_orders: 13, rate: 180, tailor_rate: 180, active: true, created_date: '2026-08-10T08:00:00Z' },
 ];
 
 const DEFAULT_TEMPLATES = [
   {
     id: 'tmpl-1',
     name: 'Emirati Kandora',
+    category: 'Men',
     garment_type: 'Kandora',
     is_active: true,
     fields: [
-      { name: 'Length', default_unit: 'in', required: true },
-      { name: 'Shoulder', default_unit: 'in', required: true },
-      { name: 'Sleeves', default_unit: 'in', required: true },
-      { name: 'Neck / Collar', default_unit: 'in', required: true },
-      { name: 'Chest', default_unit: 'in', required: true },
-      { name: 'Waist', default_unit: 'in', required: false },
-      { name: 'Bottom Flare', default_unit: 'in', required: false },
+      { field_name: 'Length', name: 'Length', unit: 'in', default_unit: 'in', is_required: true, required: true, show_in_quick_view: true },
+      { field_name: 'Shoulder', name: 'Shoulder', unit: 'in', default_unit: 'in', is_required: true, required: true, show_in_quick_view: true },
+      { field_name: 'Sleeves', name: 'Sleeves', unit: 'in', default_unit: 'in', is_required: true, required: true, show_in_quick_view: true },
+      { field_name: 'Neck / Collar', name: 'Neck / Collar', unit: 'in', default_unit: 'in', is_required: true, required: true, show_in_quick_view: true },
+      { field_name: 'Chest', name: 'Chest', unit: 'in', default_unit: 'in', is_required: true, required: true, show_in_quick_view: true },
+      { field_name: 'Waist', name: 'Waist', unit: 'in', default_unit: 'in', is_required: false, required: false, show_in_quick_view: true },
+      { field_name: 'Bottom Flare', name: 'Bottom Flare', unit: 'in', default_unit: 'in', is_required: false, required: false, show_in_quick_view: false },
     ],
     created_date: '2026-08-01T08:00:00Z'
   },
   {
     id: 'tmpl-2',
     name: 'Bespoke 2-Piece Suit',
+    category: 'Men',
     garment_type: 'Suit',
     is_active: true,
     fields: [
-      { name: 'Jacket Length', default_unit: 'in', required: true },
-      { name: 'Chest', default_unit: 'in', required: true },
-      { name: 'Waist', default_unit: 'in', required: true },
-      { name: 'Shoulder Width', default_unit: 'in', required: true },
-      { name: 'Sleeve Length', default_unit: 'in', required: true },
-      { name: 'Trouser Length', default_unit: 'in', required: true },
-      { name: 'Inseam', default_unit: 'in', required: true },
-      { name: 'Thigh Width', default_unit: 'in', required: false },
+      { field_name: 'Jacket Length', name: 'Jacket Length', unit: 'in', default_unit: 'in', is_required: true, required: true, show_in_quick_view: true },
+      { field_name: 'Chest', name: 'Chest', unit: 'in', default_unit: 'in', is_required: true, required: true, show_in_quick_view: true },
+      { field_name: 'Waist', name: 'Waist', unit: 'in', default_unit: 'in', is_required: true, required: true, show_in_quick_view: true },
+      { field_name: 'Shoulder Width', name: 'Shoulder Width', unit: 'in', default_unit: 'in', is_required: true, required: true, show_in_quick_view: true },
+      { field_name: 'Sleeve Length', name: 'Sleeve Length', unit: 'in', default_unit: 'in', is_required: true, required: true, show_in_quick_view: true },
+      { field_name: 'Trouser Length', name: 'Trouser Length', unit: 'in', default_unit: 'in', is_required: true, required: true, show_in_quick_view: true },
+      { field_name: 'Inseam', name: 'Inseam', unit: 'in', default_unit: 'in', is_required: true, required: true, show_in_quick_view: true },
+      { field_name: 'Thigh Width', name: 'Thigh Width', unit: 'in', default_unit: 'in', is_required: false, required: false, show_in_quick_view: false },
     ],
     created_date: '2026-08-01T08:00:00Z'
   },
   {
     id: 'tmpl-3',
     name: 'Formal Shirt',
+    category: 'Men',
     garment_type: 'Shirt',
     is_active: true,
     fields: [
-      { name: 'Collar', default_unit: 'in', required: true },
-      { name: 'Chest', default_unit: 'in', required: true },
-      { name: 'Waist', default_unit: 'in', required: true },
-      { name: 'Shirt Length', default_unit: 'in', required: true },
-      { name: 'Sleeve', default_unit: 'in', required: true },
-      { name: 'Cuff', default_unit: 'in', required: false },
+      { field_name: 'Collar', name: 'Collar', unit: 'in', default_unit: 'in', is_required: true, required: true, show_in_quick_view: true },
+      { field_name: 'Chest', name: 'Chest', unit: 'in', default_unit: 'in', is_required: true, required: true, show_in_quick_view: true },
+      { field_name: 'Waist', name: 'Waist', unit: 'in', default_unit: 'in', is_required: true, required: true, show_in_quick_view: true },
+      { field_name: 'Shirt Length', name: 'Shirt Length', unit: 'in', default_unit: 'in', is_required: true, required: true, show_in_quick_view: true },
+      { field_name: 'Sleeve', name: 'Sleeve', unit: 'in', default_unit: 'in', is_required: true, required: true, show_in_quick_view: true },
+      { field_name: 'Cuff', name: 'Cuff', unit: 'in', default_unit: 'in', is_required: false, required: false, show_in_quick_view: false },
     ],
     created_date: '2026-08-01T08:00:00Z'
   }
@@ -208,11 +211,14 @@ export function normalizePhoneNumber(raw) {
 }
 
 // Strict Phone Number Cleaner & Formatter as per requirements:
-// 1. Remove spaces, "+", "-", brackets, and leading zeros.
-// 2. Add the country code if it is missing.
-// 3. Final format: digits only, international (example: 9715XXXXXXXX).
-// 4. Validate the length (8 to 15 digits). If invalid, error: "Please enter a valid WhatsApp number".
-export function formatWhatsAppNumber(phoneInput, countryCode = '971') {
+// 1. Remove spaces, "+", "-", brackets, and punctuation.
+import { parsePhoneNumberWithError } from 'libphonenumber-js';
+
+// Customer WhatsApp Number Validation with maintained phone library (libphonenumber-js):
+// 1. Must NOT silently assume a country code.
+// 2. Requires explicit international country code.
+// 3. Final format: digits only, international (example: 9715XXXXXXXX or 639XXXXXXXXX).
+export function formatWhatsAppNumber(phoneInput, explicitCountryCode = '') {
   if (!phoneInput) {
     return {
       formatted: '',
@@ -221,37 +227,101 @@ export function formatWhatsAppNumber(phoneInput, countryCode = '971') {
     };
   }
 
-  // Country code digits only (e.g. "+971" -> "971")
-  const countryDigits = String(countryCode || '971').replace(/[^0-9]/g, '');
-
-  // 1. Remove spaces, "+", "-", brackets, and punctuation
-  let raw = String(phoneInput).replace(/[\s+\-()_.]/g, '');
-
-  // Remove leading zeros (e.g. 0501234567 -> 501234567, 00971... -> 971...)
-  if (raw.startsWith('00')) {
-    raw = raw.replace(/^00+/, '');
-  } else if (raw.startsWith('0')) {
-    raw = raw.replace(/^0+/, '');
+  const raw = String(phoneInput).trim();
+  const startsWithDomesticZero = /^0[1-9]/.test(raw.replace(/[\s+\-()_.]/g, ''));
+  if (startsWithDomesticZero && !explicitCountryCode) {
+    return {
+      formatted: '',
+      isValid: false,
+      error: 'Number starts with domestic 0. Please specify an explicit international country code (e.g. +971 or +63). Do not assume a country.'
+    };
   }
 
-  // 2. Add the country code if it is missing
-  let formatted = raw;
-  if (!formatted.startsWith(countryDigits)) {
-    formatted = countryDigits + formatted;
+  const countryDigits = explicitCountryCode ? String(explicitCountryCode).replace(/[^0-9]/g, '') : '';
+  let cleaned = raw.replace(/[\s+\-()_.]/g, '');
+  if (cleaned.startsWith('00')) cleaned = cleaned.replace(/^00+/, '');
+  if (startsWithDomesticZero && countryDigits) {
+    cleaned = cleaned.replace(/^0+/, '');
   }
 
-  // 3. Final format: digits only, international (example: 9715XXXXXXXX)
-  formatted = formatted.replace(/[^0-9]/g, '');
+  let full = cleaned;
+  if (countryDigits && !full.startsWith(countryDigits)) {
+    full = countryDigits + full;
+  }
+  if (!full.startsWith('+')) {
+    full = '+' + full;
+  }
 
-  // 4. Validate the length (8 to 15 digits)
-  const isValid = formatted.length >= 8 && formatted.length <= 15;
-
-  return {
-    formatted,
-    isValid,
-    error: isValid ? '' : 'Please enter a valid WhatsApp number'
-  };
+  try {
+    const parsed = parsePhoneNumberWithError(full);
+    if (!parsed || !parsed.isValid()) {
+      return {
+        formatted: '',
+        isValid: false,
+        error: 'Please enter a valid WhatsApp number with country code'
+      };
+    }
+    const digits = `${parsed.countryCallingCode}${parsed.nationalNumber}`;
+    return {
+      formatted: digits,
+      displayFormatted: parsed.formatInternational(),
+      isValid: true,
+      country: parsed.country,
+      error: ''
+    };
+  } catch (err) {
+    return {
+      formatted: '',
+      isValid: false,
+      error: 'Please enter a valid WhatsApp number with country code'
+    };
+  }
 }
+
+const DEFAULT_PAYMENTS = [
+  {
+    id: 'pay-101',
+    order_id: 'ord-101',
+    order_ref: 'MH-2026-101',
+    customer_id: 'cust-1',
+    customer_name: 'Rashid Al Nuaimi',
+    amount: 500,
+    payment_method: 'Card',
+    date: '2026-10-10',
+    reference_number: 'CARD-TXN-8821',
+    notes: 'Advance booking payment',
+    type: 'advance',
+    created_date: '2026-10-10T11:05:00Z'
+  },
+  {
+    id: 'pay-1001',
+    order_id: 'sale-1001',
+    order_ref: 'INV-2026-1001',
+    customer_id: 'cust-1',
+    customer_name: 'Rashid Al Nuaimi',
+    amount: 945,
+    payment_method: 'Card',
+    date: '2026-10-12',
+    reference_number: 'POS-TXN-1001',
+    notes: 'Retail POS Sale INV-2026-1001',
+    type: 'payment',
+    created_date: '2026-10-12T16:20:00Z'
+  },
+  {
+    id: 'pay-1002',
+    order_id: 'sale-1002',
+    order_ref: 'INV-2026-1002',
+    customer_id: 'cust-2',
+    customer_name: 'Alex Hunter',
+    amount: 388.5,
+    payment_method: 'Cash',
+    date: '2026-10-13',
+    reference_number: 'POS-TXN-1002',
+    notes: 'Retail POS Sale INV-2026-1002',
+    type: 'payment',
+    created_date: '2026-10-13T01:15:00Z'
+  }
+];
 
 const memoryStore = {
   Company: [DEFAULT_COMPANY],
@@ -261,7 +331,7 @@ const memoryStore = {
   MeasurementTemplate: [...DEFAULT_TEMPLATES],
   Sale: [...DEFAULT_SALES],
   Order: [...DEFAULT_ORDERS],
-  Payment: [],
+  Payment: [...DEFAULT_PAYMENTS],
   Expense: []
 };
 
@@ -305,11 +375,25 @@ function initStorage() {
   }
   if (!localStorage.getItem(STORAGE_PREFIX + 'Product')) setTable('Product', DEFAULT_PRODUCTS);
   if (!localStorage.getItem(STORAGE_PREFIX + 'Customer')) setTable('Customer', DEFAULT_CUSTOMERS);
-  if (!localStorage.getItem(STORAGE_PREFIX + 'Tailor')) setTable('Tailor', DEFAULT_TAILORS);
-  if (!localStorage.getItem(STORAGE_PREFIX + 'MeasurementTemplate')) setTable('MeasurementTemplate', DEFAULT_TEMPLATES);
+  
+  const existingTailors = getTable('Tailor', []);
+  if (!existingTailors.length || !existingTailors[0]?.specialization) {
+    setTable('Tailor', DEFAULT_TAILORS);
+  }
+
+  const existingTemplates = getTable('MeasurementTemplate', []);
+  if (!existingTemplates.length || !existingTemplates[0]?.fields?.[0]?.field_name) {
+    setTable('MeasurementTemplate', DEFAULT_TEMPLATES);
+  }
+
   if (!localStorage.getItem(STORAGE_PREFIX + 'Sale')) setTable('Sale', DEFAULT_SALES);
   if (!localStorage.getItem(STORAGE_PREFIX + 'Order')) setTable('Order', DEFAULT_ORDERS);
-  if (!localStorage.getItem(STORAGE_PREFIX + 'Payment')) setTable('Payment', []);
+
+  const existingPayments = getTable('Payment', []);
+  if (!existingPayments.length) {
+    setTable('Payment', DEFAULT_PAYMENTS);
+  }
+
   if (!localStorage.getItem(STORAGE_PREFIX + 'Expense')) setTable('Expense', []);
   const existingCfg = getTable('WebsiteConfig', []);
   if (!existingCfg.length || existingCfg[0]?.title?.includes('Mehar')) {
@@ -424,212 +508,155 @@ const entitiesProxy = new Proxy({}, {
 
 // Server Functions Invocation Mock & Logic
 async function invokeFunction(name, params = {}) {
-  if (name === 'sendSaleBill' || (name === 'sendWhatsAppInvoice' && (params.sale_id || !params.payment_id))) {
-    const saleId = params.sale_id;
+  if (name === 'sendSaleBill' || name === 'sendWhatsAppInvoice') {
+    const saleId = params.sale_id || params.order_id || params.invoice_id;
     const sales = getTable('Sale', []);
-    const sale = sales.find((s) => s.id === saleId || s.sale_id === saleId);
-    if (!sale) throw new Error('Sale not found');
+    let sale = sales.find((s) => s.id === saleId || s.sale_id === saleId) || null;
 
-    const customers = getTable('Customer', []);
-    const customer = customers.find((c) => c.id === sale.customer_id) || null;
+    if (!sale && params.order_id) {
+      const orders = getTable('Order', []);
+      const order = orders.find((o) => o.id === params.order_id || o.order_id === params.order_id);
+      if (order) {
+        sale = {
+          id: order.id,
+          sale_id: order.order_id || `ORD-${order.id.slice(-6)}`,
+          customer_id: order.customer_id,
+          customer_name: order.customer_name,
+          customer_phone: order.customer_phone,
+          items: [{ name: order.template_name || 'Tailored Garment', price: order.total_amount || 0, quantity: 1, line_total: order.total_amount || 0 }],
+          subtotal: order.subtotal || order.total_amount || 0,
+          discount: order.discount || 0,
+          tax_percent: order.tax_percent || 5,
+          tax_amount: order.tax_amount || 0,
+          total: order.total_amount || 0,
+          amount_paid: order.amount_paid || 0,
+          balance_due: order.balance_due || 0,
+          payment_method: order.payment_method || 'Card',
+          payment_status: order.payment_status || 'Partial',
+          date: order.booking_date || new Date().toISOString().slice(0, 10),
+          status: order.status || 'Booked'
+        };
+      }
+    }
 
-    // Phone number checking
-    const countryCode = params.country_code || '971';
-    const rawPhone = params.phone || sale.customer_phone || (customer?.phone) || '';
-    const check = formatWhatsAppNumber(rawPhone, countryCode);
+    if (params.phone) {
+      sale = { ...sale, customer_phone: params.phone };
+    }
 
-    if (!check.isValid) {
-      const errReason = check.error || 'Please enter a valid WhatsApp number';
-      const failEntry = {
-        sent_at: new Date().toISOString(),
-        number: check.formatted || rawPhone,
-        status: 'failed',
-        error: errReason
+    if (!sale) {
+      throw new Error('Invoice or order not found');
+    }
+
+    // Call protected backend endpoint with unique idempotency key
+    const idempotencyKey = params.idempotency_key || `idem-${sale.id}-${Date.now()}`;
+    const baseUrl = typeof window !== 'undefined' ? '' : 'http://localhost:5173';
+
+    try {
+      const res = await fetch(baseUrl + '/api/invoices/send-whatsapp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer usr-admin-1'
+        },
+        body: JSON.stringify({
+          invoice_id: sale.id,
+          idempotency_key: idempotencyKey,
+          preview_recipient: params.preview_recipient || params.preview_phone || null,
+          allow_resend: Boolean(params.allow_resend || params.confirm_resend),
+          invoice_data: sale
+        })
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (res.status === 409 && data.duplicate_prevented) {
+        return {
+          success: false,
+          duplicate_prevented: true,
+          status: data.existing_status || 'submitted',
+          error: data.error,
+          history: data.history || [],
+          sale
+        };
+      }
+
+      if (res.status === 409 && data.phone_changed) {
+        return {
+          success: false,
+          phone_changed: true,
+          error: data.error,
+          current_destination: data.current_destination,
+          sale
+        };
+      }
+
+      const isSuccess = res.ok && data.success;
+      const historyEntry = {
+        sent_at: data.sent_at || new Date().toISOString(),
+        number: data.destination_number || sale.customer_phone || '',
+        status: isSuccess ? (data.status || 'submitted') : (data.status || 'failed'),
+        message_id: data.message_id || null,
+        error: isSuccess ? null : (data.error || 'Dispatch failed'),
+        idempotency_key: idempotencyKey
       };
+
       const updatedSale = {
         ...sale,
-        whatsapp_status: 'failed',
-        sent_to_number: check.formatted || rawPhone,
-        whatsapp_error: errReason,
-        whatsapp_history: [...(sale.whatsapp_history || []), failEntry]
+        whatsapp_status: isSuccess ? (data.status || 'submitted') : (data.status || 'failed'),
+        sent_to_number: data.destination_number ? data.destination_number.replace(/^\+/, '') : (sale.sent_to_number || null),
+        sent_at: historyEntry.sent_at,
+        whatsapp_message_id: data.message_id || sale.whatsapp_message_id || null,
+        whatsapp_error: isSuccess ? null : (data.error || null),
+        whatsapp_history: [...(sale.whatsapp_history || []), historyEntry],
+        bill_sent_whatsapp: isSuccess ? true : sale.bill_sent_whatsapp,
       };
+
       const updatedSales = sales.map((s) => (s.id === sale.id ? updatedSale : s));
       setTable('Sale', updatedSales);
 
+      if (params.order_id) {
+        const orders = getTable('Order', []);
+        const updatedOrders = orders.map((o) => (o.id === params.order_id || o.order_id === params.order_id ? {
+          ...o,
+          whatsapp_status: isSuccess ? (data.status || 'submitted') : (data.status || 'failed'),
+          sent_to_number: data.destination_number ? data.destination_number.replace(/^\+/, '') : (o.sent_to_number || null),
+          sent_at: historyEntry.sent_at,
+          whatsapp_message_id: data.message_id || o.whatsapp_message_id || null,
+          whatsapp_error: isSuccess ? null : (data.error || null),
+          whatsapp_history: [...(o.whatsapp_history || []), historyEntry],
+          bill_sent_whatsapp: isSuccess ? true : o.bill_sent_whatsapp
+        } : o));
+        setTable('Order', updatedOrders);
+      }
+
+      return {
+        success: isSuccess,
+        status: updatedSale.whatsapp_status,
+        formatted_number: data.destination_number,
+        message_id: data.message_id,
+        pairing_needed: Boolean(data.pairing_needed),
+        customer_number_invalid: Boolean(data.customer_number_invalid),
+        error: isSuccess ? null : data.error,
+        sale: updatedSale,
+        sale_id: sale.sale_id,
+        whatsapp: {
+          ok: isSuccess,
+          status: updatedSale.whatsapp_status,
+          message_id: data.message_id,
+          phone: data.destination_number,
+          pairing_needed: Boolean(data.pairing_needed),
+          error: data.error
+        }
+      };
+    } catch (err) {
       return {
         success: false,
-        error: errReason,
-        whatsapp_status: 'failed',
-        sale: updatedSale,
-        whatsapp: { ok: false, error: errReason }
+        status: 'failed',
+        error: err.message || 'Invoice service communication error',
+        sale,
+        whatsapp: { ok: false, error: err.message }
       };
     }
-
-    const formattedPhone = check.formatted;
-
-    // 1. Generate or reuse PDF invoice
-    let pdfBase64 = sale.pdf_base64;
-    let pdfDataUri = sale.pdf_url;
-    if (!pdfBase64) {
-      try {
-        const { generateSaleInvoicePdf } = await import('../lib/pdf-utils.js');
-        const pdfRes = await generateSaleInvoicePdf(sale, customer, false);
-        if (pdfRes?.dataUri) {
-          pdfDataUri = pdfRes.dataUri;
-          const marker = 'base64,';
-          const idx = pdfRes.dataUri.indexOf(marker);
-          pdfBase64 = idx !== -1 ? pdfRes.dataUri.slice(idx + marker.length) : pdfRes.dataUri;
-        }
-      } catch (pdfErr) {
-        console.warn('PDF generation note:', pdfErr);
-      }
-    }
-
-    // 2. Prepare message text
-    const invoiceNo = sale.sale_id || (sale.id ? `INV-${sale.id.slice(-6).toUpperCase()}` : 'INV-0001');
-    const custDisplayName = sale.customer_name || customer?.name || 'Customer';
-    const defaultMsg = `Hello ${custDisplayName}, your invoice ${invoiceNo} is attached.\nThank you for your purchase.`;
-    const messageText = (params.custom_message !== undefined && params.custom_message !== null && params.custom_message !== '')
-      ? params.custom_message
-      : defaultMsg;
-
-    // 3. Option: "Save this number to the customer record" (checkbox)
-    if (params.update_customer_phone && sale.customer_id) {
-      try {
-        const custIdx = customers.findIndex((c) => c.id === sale.customer_id);
-        if (custIdx !== -1) {
-          customers[custIdx] = {
-            ...customers[custIdx],
-            phone: `+${formattedPhone}`,
-            whatsapp: `+${formattedPhone}`,
-            updated_date: new Date().toISOString()
-          };
-          setTable('Customer', customers);
-        }
-      } catch (custErr) {
-        console.warn('Failed to update customer phone:', custErr);
-      }
-    }
-
-    // 4. Send via WhatsApp Gateway (API key safely attached server-side by Vite proxy)
-    let textSuccess = false;
-    let mediaSuccess = false;
-    let lastError = null;
-    const gatewayBaseUrl = typeof window !== 'undefined' ? '' : 'http://localhost:5173';
-
-    // Step A: Send message text
-    try {
-      const textRes = await fetch(gatewayBaseUrl + '/api/gateway/send/text', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          number: formattedPhone,
-          text: messageText,
-          delay: 1000
-        })
-      });
-      const textData = await textRes.json();
-      if (textRes.ok && (textData.message === 'success' || textData.data)) {
-        textSuccess = true;
-      } else {
-        lastError = textData.error || textData.message || 'Failed to send text message via gateway';
-      }
-    } catch (err) {
-      lastError = err.message || 'Gateway text dispatch network error';
-    }
-
-    // Step B: Send PDF invoice document if available
-    if (pdfBase64) {
-      try {
-        const mediaRes = await fetch(gatewayBaseUrl + '/api/gateway/send/media', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            number: formattedPhone,
-            type: 'document',
-            filename: `invoice-${invoiceNo}.pdf`,
-            caption: `Invoice ${invoiceNo}`,
-            url: pdfBase64
-          })
-        });
-        const mediaData = await mediaRes.json();
-        if (mediaRes.ok && (mediaData.message === 'success' || mediaData.data)) {
-          mediaSuccess = true;
-        } else if (!lastError) {
-          lastError = mediaData.error || mediaData.message || 'Failed to send PDF document via gateway';
-        }
-      } catch (err) {
-        if (!lastError) lastError = err.message || 'Gateway document dispatch network error';
-      }
-    }
-
-    const overallSuccess = textSuccess || mediaSuccess;
-    const finalStatus = overallSuccess ? 'sent' : 'failed';
-    const historyEntry = {
-      sent_at: new Date().toISOString(),
-      number: formattedPhone,
-      status: finalStatus,
-      error: overallSuccess ? null : lastError
-    };
-
-    // Build fallback direct web link
-    const waUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(messageText)}`;
-
-    // Update sale in DB
-    const updatedSale = {
-      ...sale,
-      customer_phone: params.phone ? rawPhone : sale.customer_phone,
-      whatsapp_status: finalStatus,
-      sent_to_number: formattedPhone,
-      sent_at: historyEntry.sent_at,
-      whatsapp_error: overallSuccess ? null : lastError,
-      whatsapp_history: [...(sale.whatsapp_history || []), historyEntry],
-      bill_sent_whatsapp: overallSuccess ? true : sale.bill_sent_whatsapp,
-      pdf_base64: pdfBase64 || sale.pdf_base64,
-      pdf_url: pdfDataUri || sale.pdf_url
-    };
-
-    const updatedSales = sales.map((s) => (s.id === sale.id ? updatedSale : s));
-    setTable('Sale', updatedSales);
-
-    return {
-      success: overallSuccess,
-      whatsapp_status: finalStatus,
-      formatted_number: formattedPhone,
-      error: overallSuccess ? null : lastError,
-      sale: updatedSale,
-      sale_id: sale.sale_id,
-      whatsapp: {
-        ok: overallSuccess,
-        phone: formattedPhone,
-        url: waUrl,
-        text_sent: textSuccess,
-        media_sent: mediaSuccess,
-        error: lastError
-      }
-    };
-  }
-
-  if (name === 'sendWhatsAppInvoice') {
-    const paymentId = params.payment_id;
-    const payments = getTable('Payment', []);
-    const payment = payments.find((p) => p.id === paymentId);
-    const orders = getTable('Order', []);
-    const order = orders.find((o) => o.id === payment?.order_id) || {};
-    const customers = getTable('Customer', []);
-    const customer = customers.find((c) => c.id === payment?.customer_id || c.id === order?.customer_id) || {};
-
-    const rawPhone = customer.whatsapp || customer.phone || '';
-    const normPhone = normalizePhoneNumber(rawPhone);
-
-    return {
-      success: true,
-      whatsapp: {
-        ok: true,
-        phone: normPhone,
-        message_id: `wa-order-${Date.now()}`
-      }
-    };
   }
 
   if (name === 'getOnlineOrderingConfig') {
@@ -646,7 +673,75 @@ async function invokeFunction(name, params = {}) {
   }
 
   if (name === 'submitOnlineOrder') {
-    return { success: true };
+    const { type, customer, tailoring, retail } = params || {};
+    let refId = '';
+    if (type === 'tailoring') {
+      refId = `ONL-ORD-${Math.floor(1000 + Math.random() * 9000)}`;
+      const newOrder = {
+        id: `ord-onl-${Date.now()}`,
+        order_id: refId,
+        customer_name: customer?.name || 'Online Customer',
+        customer_phone: customer?.phone || customer?.whatsapp || '',
+        customer_email: customer?.email || '',
+        booking_date: new Date().toISOString().slice(0, 10),
+        delivery_date: tailoring?.delivery_date || '',
+        priority: 'Normal',
+        order_type: 'Standard',
+        template_name: tailoring?.garment_type || 'Custom Garment',
+        fabric_type: tailoring?.fabric_preference || '',
+        style_notes: tailoring?.notes || '',
+        measurement_values: tailoring?.measurements ? { notes: tailoring.measurements } : {},
+        status: 'Booked',
+        payment_status: 'Pending',
+        amount_paid: 0,
+        subtotal: 0,
+        total_amount: 0,
+        balance_due: 0,
+        source: 'online',
+        online_pending: true,
+        delivery_method: customer?.delivery_method || 'Pickup',
+        created_date: new Date().toISOString()
+      };
+      const orders = getTable('Order', []);
+      orders.unshift(newOrder);
+      setTable('Order', orders);
+    } else {
+      refId = `ONL-INV-${Math.floor(1000 + Math.random() * 9000)}`;
+      const items = retail?.items || [];
+      const subtotal = items.reduce((s, i) => s + (i.line_total || (i.price || 0) * (i.quantity || 1)), 0);
+      const newSale = {
+        id: `sale-onl-${Date.now()}`,
+        sale_id: refId,
+        customer_name: customer?.name || 'Online Customer',
+        customer_phone: customer?.phone || customer?.whatsapp || '',
+        customer_email: customer?.email || '',
+        items,
+        subtotal,
+        discount: 0,
+        tax_percent: 5,
+        tax_amount: subtotal * 0.05,
+        total: subtotal * 1.05,
+        amount_paid: 0,
+        balance_due: subtotal * 1.05,
+        payment_method: 'Card',
+        payment_status: 'Pending',
+        date: new Date().toISOString().slice(0, 10),
+        status: 'Completed',
+        source: 'online',
+        online_pending: true,
+        created_date: new Date().toISOString()
+      };
+      const sales = getTable('Sale', []);
+      sales.unshift(newSale);
+      setTable('Sale', sales);
+    }
+    return {
+      success: true,
+      data: {
+        reference: refId,
+        review: true
+      }
+    };
   }
 
   return { success: true };

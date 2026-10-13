@@ -6,8 +6,8 @@ import { motion } from 'framer-motion';
 import StatusBadge from '@/components/StatusBadge';
 import { formatCurrency, formatDate } from '@/lib/mehar-utils';
 import {
-  ArrowLeft, Phone, Mail, MapPin, Calendar, ShoppingBag, Wallet,
-  Plus, MessageCircle, CreditCard, UserCog
+  ArrowLeft, Phone, Mail, MapPin, ShoppingBag, Wallet,
+  Plus, MessageCircle, CreditCard
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -94,11 +94,30 @@ export default function CustomerDetail() {
               </div>
             </div>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="gap-1.5"><MessageCircle className="h-4 w-4" /> WhatsApp</Button>
-            <Button variant="outline" size="sm" className="gap-1.5"><CreditCard className="h-4 w-4" /> Payment</Button>
-            <Link to={`/orders?new=1&customer=${id}`}>
-              <Button size="sm" className="gap-1.5 bg-primary hover:bg-primary/90"><Plus className="h-4 w-4" /> Add Order</Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => {
+                const rawNum = customer.whatsapp || customer.phone || '';
+                const norm = rawNum.replace(/[^0-9]/g, '');
+                if (norm) {
+                  window.open(`https://wa.me/${norm}?text=${encodeURIComponent(`Hello ${customer.name}, greeting from THREDO Tailoring POS.`)}`, '_blank');
+                }
+              }}
+            >
+              <MessageCircle className="h-4 w-4 text-emerald-600" /> WhatsApp
+            </Button>
+            <Link to={`/payments?customer=${id}`}>
+              <Button variant="outline" size="sm" className="gap-1.5">
+                <CreditCard className="h-4 w-4" /> Payments
+              </Button>
+            </Link>
+            <Link to={`/orders/new?customer=${id}`}>
+              <Button size="sm" className="gap-1.5 bg-primary hover:bg-primary/90">
+                <Plus className="h-4 w-4" /> Add Order
+              </Button>
             </Link>
           </div>
         </div>

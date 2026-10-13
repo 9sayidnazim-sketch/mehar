@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 
 import { formatCurrency } from '@/lib/mehar-utils';
-import { Plus, Scissors, Phone, Mail, TrendingUp, X } from 'lucide-react';
+import { Plus, Scissors, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -128,7 +128,15 @@ function AddTailorDialog({ open, onClose, onCreated }) {
     if (!form.name) return;
     setSaving(true);
     try {
-      await db.entities.Tailor.create({ ...form, active: true, total_orders_assigned: 0, completed_orders: 0, monthly_earnings: 0 });
+      await db.entities.Tailor.create({
+        ...form,
+        specialty: form.specialization,
+        tailor_rate: form.rate,
+        active: true,
+        total_orders_assigned: 0,
+        completed_orders: 0,
+        monthly_earnings: 0
+      });
       setForm({ name: '', phone: '', email: '', specialization: 'General', department: 'Workshop', rate_type: 'piecework', rate: 0 });
       onCreated();
       onClose();

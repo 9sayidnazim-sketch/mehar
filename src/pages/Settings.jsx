@@ -3,8 +3,8 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 
 import {
-  Building2, Ruler, CreditCard, Bell, Users, Palette, Plus, Trash2,
-  Save, GripVertical, Check, Globe, ShoppingBag, Edit, Package
+  Building2, Ruler, CreditCard, Palette, Plus, Trash2,
+  Save, Globe, ShoppingBag, Edit, Package
 } from 'lucide-react';
 import WebsiteOrdering from '@/components/settings/WebsiteOrdering';
 import { Button } from '@/components/ui/button';
@@ -209,7 +209,7 @@ function MeasurementTemplates() {
               {t.fields?.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-1.5">
                   {t.fields.map((f, i) => (
-                    <span key={i} className="rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground">{f.field_name}</span>
+                    <span key={i} className="rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground">{f.field_name || f.name}</span>
                   ))}
                 </div>
               )}
@@ -250,10 +250,20 @@ function TemplateEditor({ template, onClose, onSaved }) {
     if (!form.name) return;
     setSaving(true);
     try {
+      const normalizedFields = (form.fields || []).map((f) => ({
+        ...f,
+        field_name: f.field_name || f.name || '',
+        name: f.field_name || f.name || '',
+        unit: f.unit || f.default_unit || 'cm',
+        default_unit: f.unit || f.default_unit || 'cm',
+        is_required: Boolean(f.is_required ?? f.required),
+        required: Boolean(f.is_required ?? f.required),
+      }));
+      const payload = { ...form, fields: normalizedFields };
       if (form.id) {
-        await db.entities.MeasurementTemplate.update(form.id, form);
+        await db.entities.MeasurementTemplate.update(form.id, payload);
       } else {
-        await db.entities.MeasurementTemplate.create(form);
+        await db.entities.MeasurementTemplate.create(payload);
       }
       toast({ title: 'Template saved' });
       onSaved();
@@ -293,10 +303,10 @@ function TemplateEditor({ template, onClose, onSaved }) {
             {form.fields?.length === 0 && <p className="text-sm text-muted-foreground">No fields yet. Add measurement fields like Chest, Waist, Length...</p>}
             {form.fields?.map((f, i) => (
               <div key={i} className="flex items-center gap-2 rounded-lg border border-border p-2">
-                <Input value={f.field_name} onChange={(e) => updateField(i, 'field_name', e.target.value)} placeholder="Field name" className="h-8 flex-1" />
-                <Input value={f.unit} onChange={(e) => updateField(i, 'unit', e.target.value)} placeholder="Unit" className="h-8 w-20" />
+                <Input value={f.field_name ?? f.name ?? ''} onChange={(e) => updateField(i, 'field_name', e.target.value)} placeholder="Field name" className="h-8 flex-1" />
+                <Input value={f.unit ?? f.default_unit ?? 'cm'} onChange={(e) => updateField(i, 'unit', e.target.value)} placeholder="Unit" className="h-8 w-20" />
                 <label className="flex items-center gap-1 text-xs whitespace-nowrap">
-                  <Switch checked={f.is_required} onCheckedChange={(v) => updateField(i, 'is_required', v)} /> Req
+                  <Switch checked={Boolean(f.is_required ?? f.required)} onCheckedChange={(v) => updateField(i, 'is_required', v)} /> Req
                 </label>
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => removeField(i)}><Trash2 className="h-3.5 w-3.5 text-red-500" /></Button>
               </div>
