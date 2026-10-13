@@ -121,6 +121,13 @@ const DEFAULT_SALES = [
     date: '2026-10-12',
     status: 'Completed',
     bill_sent_whatsapp: true,
+    whatsapp_status: 'sent',
+    sent_to_number: '971501234567',
+    sent_at: '2026-10-12T16:20:00Z',
+    whatsapp_error: null,
+    whatsapp_history: [
+      { sent_at: '2026-10-12T16:20:00Z', number: '971501234567', status: 'sent', error: null }
+    ],
     bill_sent_email: false,
     created_date: '2026-10-12T16:20:00Z'
   },
@@ -147,6 +154,11 @@ const DEFAULT_SALES = [
     date: '2026-10-13',
     status: 'Completed',
     bill_sent_whatsapp: false,
+    whatsapp_status: 'pending',
+    sent_to_number: null,
+    sent_at: null,
+    whatsapp_error: null,
+    whatsapp_history: [],
     bill_sent_email: false,
     created_date: '2026-10-13T01:15:00Z'
   }
@@ -195,9 +207,70 @@ export function normalizePhoneNumber(raw) {
   return cleaned;
 }
 
+// Strict Phone Number Cleaner & Formatter as per requirements:
+// 1. Remove spaces, "+", "-", brackets, and leading zeros.
+// 2. Add the country code if it is missing.
+// 3. Final format: digits only, international (example: 9715XXXXXXXX).
+// 4. Validate the length (8 to 15 digits). If invalid, error: "Please enter a valid WhatsApp number".
+export function formatWhatsAppNumber(phoneInput, countryCode = '971') {
+  if (!phoneInput) {
+    return {
+      formatted: '',
+      isValid: false,
+      error: 'Please enter a valid WhatsApp number'
+    };
+  }
+
+  // Country code digits only (e.g. "+971" -> "971")
+  const countryDigits = String(countryCode || '971').replace(/[^0-9]/g, '');
+
+  // 1. Remove spaces, "+", "-", brackets, and punctuation
+  let raw = String(phoneInput).replace(/[\s+\-()_.]/g, '');
+
+  // Remove leading zeros (e.g. 0501234567 -> 501234567, 00971... -> 971...)
+  if (raw.startsWith('00')) {
+    raw = raw.replace(/^00+/, '');
+  } else if (raw.startsWith('0')) {
+    raw = raw.replace(/^0+/, '');
+  }
+
+  // 2. Add the country code if it is missing
+  let formatted = raw;
+  if (!formatted.startsWith(countryDigits)) {
+    formatted = countryDigits + formatted;
+  }
+
+  // 3. Final format: digits only, international (example: 9715XXXXXXXX)
+  formatted = formatted.replace(/[^0-9]/g, '');
+
+  // 4. Validate the length (8 to 15 digits)
+  const isValid = formatted.length >= 8 && formatted.length <= 15;
+
+  return {
+    formatted,
+    isValid,
+    error: isValid ? '' : 'Please enter a valid WhatsApp number'
+  };
+}
+
+const memoryStore = {
+  Company: [DEFAULT_COMPANY],
+  Product: [...DEFAULT_PRODUCTS],
+  Customer: [...DEFAULT_CUSTOMERS],
+  Tailor: [...DEFAULT_TAILORS],
+  MeasurementTemplate: [...DEFAULT_TEMPLATES],
+  Sale: [...DEFAULT_SALES],
+  Order: [...DEFAULT_ORDERS],
+  Payment: [],
+  Expense: []
+};
+
 // Local Storage Helper
 function getTable(table, defaultVal = []) {
-  if (typeof window === 'undefined') return defaultVal;
+  if (typeof window === 'undefined') {
+    if (!memoryStore[table]) memoryStore[table] = defaultVal;
+    return memoryStore[table];
+  }
   try {
     const raw = localStorage.getItem(STORAGE_PREFIX + table);
     if (!raw) {
@@ -212,7 +285,10 @@ function getTable(table, defaultVal = []) {
 }
 
 function setTable(table, data) {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined') {
+    memoryStore[table] = data;
+    return;
+  }
   try {
     localStorage.setItem(STORAGE_PREFIX + table, JSON.stringify(data));
   } catch (e) {
@@ -348,57 +424,189 @@ const entitiesProxy = new Proxy({}, {
 
 // Server Functions Invocation Mock & Logic
 async function invokeFunction(name, params = {}) {
-  if (name === 'sendSaleBill') {
+  if (name === 'sendSaleBill' || (name === 'sendWhatsAppInvoice' && (params.sale_id || !params.payment_id))) {
     const saleId = params.sale_id;
     const sales = getTable('Sale', []);
     const sale = sales.find((s) => s.id === saleId || s.sale_id === saleId);
     if (!sale) throw new Error('Sale not found');
 
-    const rawPhone = sale.customer_phone || '';
-    const normPhone = normalizePhoneNumber(rawPhone);
-    if (!normPhone || normPhone.length < 8) {
+    const customers = getTable('Customer', []);
+    const customer = customers.find((c) => c.id === sale.customer_id) || null;
+
+    // Phone number checking
+    const countryCode = params.country_code || '971';
+    const rawPhone = params.phone || sale.customer_phone || (customer?.phone) || '';
+    const check = formatWhatsAppNumber(rawPhone, countryCode);
+
+    if (!check.isValid) {
+      const errReason = check.error || 'Please enter a valid WhatsApp number';
+      const failEntry = {
+        sent_at: new Date().toISOString(),
+        number: check.formatted || rawPhone,
+        status: 'failed',
+        error: errReason
+      };
+      const updatedSale = {
+        ...sale,
+        whatsapp_status: 'failed',
+        sent_to_number: check.formatted || rawPhone,
+        whatsapp_error: errReason,
+        whatsapp_history: [...(sale.whatsapp_history || []), failEntry]
+      };
+      const updatedSales = sales.map((s) => (s.id === sale.id ? updatedSale : s));
+      setTable('Sale', updatedSales);
+
       return {
         success: false,
-        whatsapp: { ok: false, error: 'Customer phone is invalid or missing WhatsApp format.' }
+        error: errReason,
+        whatsapp_status: 'failed',
+        sale: updatedSale,
+        whatsapp: { ok: false, error: errReason }
       };
     }
 
-    // Mark as sent in DB
-    const updatedSales = sales.map((s) => (s.id === sale.id ? { ...s, bill_sent_whatsapp: true } : s));
-    setTable('Sale', updatedSales);
+    const formattedPhone = check.formatted;
 
-    // Build WhatsApp chat link
-    const company = (getTable('Company', []) || [])[0] || DEFAULT_COMPANY;
-    const textMsg = encodeURIComponent(
-      `Hello ${sale.customer_name || 'Customer'},\n` +
-      `Thank you for your purchase at ${company.name}!\n\n` +
-      `🧾 Invoice No: ${sale.sale_id}\n` +
-      `💰 Total: AED ${Number(sale.total || 0).toFixed(2)}\n` +
-      `💳 Paid: AED ${Number(sale.amount_paid || 0).toFixed(2)}\n` +
-      (sale.balance_due > 0 ? `⚠️ Balance Due: AED ${Number(sale.balance_due || 0).toFixed(2)}\n` : '') +
-      `\nYour official PDF tax invoice has been generated. Thank you!`
-    );
-    const waUrl = `https://wa.me/${normPhone}?text=${textMsg}`;
+    // 1. Generate or reuse PDF invoice
+    let pdfBase64 = sale.pdf_base64;
+    let pdfDataUri = sale.pdf_url;
+    if (!pdfBase64) {
+      try {
+        const { generateSaleInvoicePdf } = await import('../lib/pdf-utils.js');
+        const pdfRes = await generateSaleInvoicePdf(sale, customer, false);
+        if (pdfRes?.dataUri) {
+          pdfDataUri = pdfRes.dataUri;
+          const marker = 'base64,';
+          const idx = pdfRes.dataUri.indexOf(marker);
+          pdfBase64 = idx !== -1 ? pdfRes.dataUri.slice(idx + marker.length) : pdfRes.dataUri;
+        }
+      } catch (pdfErr) {
+        console.warn('PDF generation note:', pdfErr);
+      }
+    }
 
-    // Optionally notify Orbit or dev bridge if running
+    // 2. Prepare message text
+    const invoiceNo = sale.sale_id || (sale.id ? `INV-${sale.id.slice(-6).toUpperCase()}` : 'INV-0001');
+    const custDisplayName = sale.customer_name || customer?.name || 'Customer';
+    const defaultMsg = `Hello ${custDisplayName}, your invoice ${invoiceNo} is attached.\nThank you for your purchase.`;
+    const messageText = (params.custom_message !== undefined && params.custom_message !== null && params.custom_message !== '')
+      ? params.custom_message
+      : defaultMsg;
+
+    // 3. Option: "Save this number to the customer record" (checkbox)
+    if (params.update_customer_phone && sale.customer_id) {
+      try {
+        const custIdx = customers.findIndex((c) => c.id === sale.customer_id);
+        if (custIdx !== -1) {
+          customers[custIdx] = {
+            ...customers[custIdx],
+            phone: `+${formattedPhone}`,
+            whatsapp: `+${formattedPhone}`,
+            updated_date: new Date().toISOString()
+          };
+          setTable('Customer', customers);
+        }
+      } catch (custErr) {
+        console.warn('Failed to update customer phone:', custErr);
+      }
+    }
+
+    // 4. Send via WhatsApp Gateway (API key safely attached server-side by Vite proxy)
+    let textSuccess = false;
+    let mediaSuccess = false;
+    let lastError = null;
+    const gatewayBaseUrl = typeof window !== 'undefined' ? '' : 'http://localhost:5173';
+
+    // Step A: Send message text
     try {
-      fetch('http://localhost:3000/send/text', {
+      const textRes = await fetch(gatewayBaseUrl + '/api/gateway/send/text', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to: normPhone, text: decodeURIComponent(textMsg) })
-      }).catch(() => {});
-    } catch (_) {}
+        body: JSON.stringify({
+          number: formattedPhone,
+          text: messageText,
+          delay: 1000
+        })
+      });
+      const textData = await textRes.json();
+      if (textRes.ok && (textData.message === 'success' || textData.data)) {
+        textSuccess = true;
+      } else {
+        lastError = textData.error || textData.message || 'Failed to send text message via gateway';
+      }
+    } catch (err) {
+      lastError = err.message || 'Gateway text dispatch network error';
+    }
+
+    // Step B: Send PDF invoice document if available
+    if (pdfBase64) {
+      try {
+        const mediaRes = await fetch(gatewayBaseUrl + '/api/gateway/send/media', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            number: formattedPhone,
+            type: 'document',
+            filename: `invoice-${invoiceNo}.pdf`,
+            caption: `Invoice ${invoiceNo}`,
+            url: pdfBase64
+          })
+        });
+        const mediaData = await mediaRes.json();
+        if (mediaRes.ok && (mediaData.message === 'success' || mediaData.data)) {
+          mediaSuccess = true;
+        } else if (!lastError) {
+          lastError = mediaData.error || mediaData.message || 'Failed to send PDF document via gateway';
+        }
+      } catch (err) {
+        if (!lastError) lastError = err.message || 'Gateway document dispatch network error';
+      }
+    }
+
+    const overallSuccess = textSuccess || mediaSuccess;
+    const finalStatus = overallSuccess ? 'sent' : 'failed';
+    const historyEntry = {
+      sent_at: new Date().toISOString(),
+      number: formattedPhone,
+      status: finalStatus,
+      error: overallSuccess ? null : lastError
+    };
+
+    // Build fallback direct web link
+    const waUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(messageText)}`;
+
+    // Update sale in DB
+    const updatedSale = {
+      ...sale,
+      customer_phone: params.phone ? rawPhone : sale.customer_phone,
+      whatsapp_status: finalStatus,
+      sent_to_number: formattedPhone,
+      sent_at: historyEntry.sent_at,
+      whatsapp_error: overallSuccess ? null : lastError,
+      whatsapp_history: [...(sale.whatsapp_history || []), historyEntry],
+      bill_sent_whatsapp: overallSuccess ? true : sale.bill_sent_whatsapp,
+      pdf_base64: pdfBase64 || sale.pdf_base64,
+      pdf_url: pdfDataUri || sale.pdf_url
+    };
+
+    const updatedSales = sales.map((s) => (s.id === sale.id ? updatedSale : s));
+    setTable('Sale', updatedSales);
 
     return {
-      success: true,
+      success: overallSuccess,
+      whatsapp_status: finalStatus,
+      formatted_number: formattedPhone,
+      error: overallSuccess ? null : lastError,
+      sale: updatedSale,
       sale_id: sale.sale_id,
       whatsapp: {
-        ok: true,
-        phone: normPhone,
+        ok: overallSuccess,
+        phone: formattedPhone,
         url: waUrl,
-        message_id: `wa-msg-${Date.now()}`
-      },
-      email: { skipped: true, reason: 'Email delivery optional' }
+        text_sent: textSuccess,
+        media_sent: mediaSuccess,
+        error: lastError
+      }
     };
   }
 

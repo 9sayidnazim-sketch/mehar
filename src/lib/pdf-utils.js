@@ -1,7 +1,7 @@
-import { db } from '@/api/base44Client';
+import { db } from '../api/base44Client.js';
 import { jsPDF } from 'jspdf';
 
-import { formatCurrency, formatDate } from '@/lib/mehar-utils';
+import { formatCurrency, formatDate } from './mehar-utils.js';
 
 const PRIMARY = [91, 61, 245];
 const INK = [33, 33, 40];
