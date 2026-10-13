@@ -1,8 +1,6 @@
-const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
+# THREDO (Mehar Tailors & Retail POS)
 
-# Base44 Project
-
-Use this repository to run and edit the app locally, then publish changes back through db.
+A comprehensive tailoring business management & retail point of sale (POS) web application built for boutique tailoring and custom garment retail businesses. Includes auto A4 PDF tax invoices and instant WhatsApp dispatch.
 
 Any change pushed to the repo will also be reflected in the Base44 Builder.
 
