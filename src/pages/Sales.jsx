@@ -280,7 +280,8 @@ export default function Sales() {
   const openWhatsAppModal = async (s) => {
     const custName = s.customer_name || 'Customer';
     const invNo = s.sale_id || (s.id ? `INV-${s.id.slice(-6).toUpperCase()}` : 'INV-0001');
-    const initialPhone = s.sent_to_number || s.customer_phone || '';
+    const custObj = customers.find((c) => c.id === s.customer_id);
+    const initialPhone = s.sent_to_number || s.customer_phone || custObj?.phone || custObj?.whatsapp || '';
 
     // Detect country code from phone; do not silently assume any country if missing
     let detectedCountry = '';
@@ -503,7 +504,7 @@ export default function Sales() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Sales Panel</h1>
-          <p className="text-sm text-muted-foreground">Point of Sale (POS) — build bills, generate tax invoices & auto-send via WhatsApp</p>
+          <p className="text-sm text-muted-foreground">Point of Sale (POS) — build bills, generate tax invoices & send via WhatsApp</p>
         </div>
         <Button onClick={() => setQuickAddOpen(true)} variant="outline" className="gap-2">
           <Plus className="h-4 w-4" /> Quick Add Product
@@ -728,20 +729,6 @@ export default function Sales() {
                   )}
                 </div>
 
-                {/* WhatsApp Dispatch Toggle */}
-                <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-foreground py-0.5">
-                  <input
-                    type="checkbox"
-                    checked={sendWhatsApp}
-                    onChange={(e) => setSendWhatsApp(e.target.checked)}
-                    className="rounded border-border text-primary focus:ring-primary h-4 w-4"
-                  />
-                  <span className="flex items-center gap-1.5">
-                    <MessageCircle className="h-3.5 w-3.5 text-emerald-600" />
-                    Send Invoice on WhatsApp {customer.phone ? `(${customer.phone})` : '(if phone provided)'}
-                  </span>
-                </label>
-
                 <Button
                   onClick={generateBill}
                   disabled={generating || cart.length === 0}
@@ -750,7 +737,7 @@ export default function Sales() {
                   {generating ? (
                     <><div className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" /> Generating Invoice & PDF...</>
                   ) : (
-                    <><Receipt className="h-4 w-4" /> Complete Sale {sendWhatsApp && customer.phone ? '& Send WhatsApp' : ''}</>
+                    <><Receipt className="h-4 w-4" /> Complete Sale & Generate Invoice</>
                   )}
                 </Button>
               </div>
