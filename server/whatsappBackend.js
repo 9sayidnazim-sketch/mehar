@@ -38,7 +38,10 @@ function getEnvConfig() {
 }
 
 // Persistent Storage Directories & Files
-const DATA_DIR = path.resolve(process.cwd(), '.data');
+const BASE_DATA_DIR = path.resolve(process.cwd(), '.data');
+const DATA_DIR = (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME)
+  ? path.join('/tmp', '.data')
+  : BASE_DATA_DIR;
 const SEND_RECORDS_FILE = path.join(DATA_DIR, 'invoice_send_records.json');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
 
@@ -47,8 +50,18 @@ function ensureDataDir() {
     if (!fs.existsSync(DATA_DIR)) {
       fs.mkdirSync(DATA_DIR, { recursive: true });
     }
+    if (DATA_DIR !== BASE_DATA_DIR && fs.existsSync(BASE_DATA_DIR)) {
+      const srcDb = path.join(BASE_DATA_DIR, 'db.json');
+      const srcRecords = path.join(BASE_DATA_DIR, 'invoice_send_records.json');
+      if (!fs.existsSync(DB_FILE) && fs.existsSync(srcDb)) {
+        try { fs.copyFileSync(srcDb, DB_FILE); } catch (_) {}
+      }
+      if (!fs.existsSync(SEND_RECORDS_FILE) && fs.existsSync(srcRecords)) {
+        try { fs.copyFileSync(srcRecords, SEND_RECORDS_FILE); } catch (_) {}
+      }
+    }
   } catch (err) {
-    console.error('[WhatsApp Backend] Failed to initialize .data directory:', err.message);
+    console.error('[WhatsApp Backend] Failed to initialize data directory:', err.message);
   }
 }
 
