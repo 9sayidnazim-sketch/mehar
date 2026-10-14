@@ -2,7 +2,8 @@
 
 A comprehensive tailoring business management & retail point of sale (POS) web application built for boutique tailoring and custom garment retail businesses. Includes auto A4 PDF tax invoices and instant WhatsApp dispatch.
 
-Any change pushed to the repo will also be reflected in the Base44 Builder.
+**Live Production URL:** [https://octapusthredoo.vercel.app](https://octapusthredoo.vercel.app)
+
 
 ## Prerequisites
 
