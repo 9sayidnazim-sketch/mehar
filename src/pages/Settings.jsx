@@ -821,7 +821,7 @@ function DatabaseSettings() {
         <div className="rounded-xl border border-border bg-muted/20 p-4">
           <p className="text-xs text-muted-foreground">Storage Engine</p>
           <p className="text-sm font-semibold mt-1 flex items-center gap-1.5 text-emerald-600">
-            <CheckCircle2 className="h-4 w-4" /> LocalStorage + Base44
+            <CheckCircle2 className="h-4 w-4" /> LocalStorage + OCTAPUS Engine
           </p>
           <p className="text-[11px] text-muted-foreground mt-1">Est. {storageSizeKb} KB cached</p>
         </div>

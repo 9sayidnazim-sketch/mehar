@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <defs>
+    <linearGradient id="octapusGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8b5cf6" />
+      <stop offset="50%" stop-color="#6366f1" />
+      <stop offset="100%" stop-color="#06b6d4" />
+    </linearGradient>
+    <linearGradient id="octapusGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#a855f7" />
+      <stop offset="100%" stop-color="#3b82f6" />
+    </linearGradient>
+  </defs>
+  <!-- Background rounded squircle -->
+  <rect width="100" height="100" rx="24" fill="url(#octapusGrad)" />
+  <!-- Stylized OCTAPUS Inner Icon: Interlocking Infinity & Thread Needle Ring -->
+  <path
+    d="M50 20C33.4315 20 20 33.4315 20 50C20 66.5685 33.4315 80 50 80C66.5685 80 80 66.5685 80 50C80 33.4315 66.5685 20 50 20ZM50 31C60.4934 31 69 39.5066 69 50C69 60.4934 60.4934 69 50 69C39.5066 69 31 60.4934 31 50C31 39.5066 39.5066 31 50 31Z"
+    fill="white"
+    fill-opacity="0.95"
+  />
+  <!-- Octapus Central Core & Precision Nodes -->
+  <circle cx="50" cy="50" r="10" fill="white" />
+  <circle cx="50" cy="25" r="4.5" fill="#f8fafc" />
+  <circle cx="75" cy="50" r="4.5" fill="#f8fafc" />
+  <circle cx="50" cy="75" r="4.5" fill="#f8fafc" />
+  <circle cx="25" cy="50" r="4.5" fill="#f8fafc" />
+</svg>

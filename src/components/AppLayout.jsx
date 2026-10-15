@@ -28,13 +28,13 @@ function SidebarContent({ onNavigate }) {
     <div className="flex h-full flex-col">
       {/* Brand Header */}
       <div className="flex items-center gap-3 px-5 py-5 border-b border-sidebar-border/60">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 via-indigo-600 to-purple-700 text-white shadow-md shadow-violet-500/25">
-          <Ruler className="h-5 w-5" />
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 via-indigo-600 to-purple-700 text-white shadow-md shadow-violet-500/25 overflow-hidden">
+          <img src="/octapus-logo.svg" alt="OCTAPUS" className="h-7 w-7 object-contain" />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
-            <p className="text-base font-extrabold tracking-tight text-foreground">THREDO</p>
-            <span className="rounded-full bg-violet-100 px-1.5 py-0.2 text-[9px] font-bold text-violet-700 dark:bg-violet-950 dark:text-violet-300">POS</span>
+            <p className="text-base font-extrabold tracking-tight text-foreground">OCTAPUS</p>
+            <span className="rounded-full bg-violet-100 px-1.5 py-0.2 text-[9px] font-bold text-violet-700 dark:bg-violet-950 dark:text-violet-300">THREDO</span>
           </div>
           <p className="text-[11px] font-medium text-muted-foreground truncate">Tailoring & Retail Suite</p>
         </div>
@@ -76,17 +76,20 @@ function SidebarContent({ onNavigate }) {
         ))}
       </nav>
 
-      {/* Powered by Card */}
+      {/* Powered by OCTAPUS Badge */}
       <div className="border-t border-border/80 p-3.5">
         <div className="rounded-xl border border-violet-200/50 bg-gradient-to-br from-violet-50/80 to-indigo-50/60 p-3 dark:border-violet-900/40 dark:from-violet-950/40 dark:to-indigo-950/30">
           <div className="flex items-center justify-between">
-            <p className="text-xs font-bold text-foreground">THREDO</p>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-extrabold tracking-wider text-primary">OCTAPUS</span>
+              <span className="text-[10px] text-muted-foreground font-semibold">POS</span>
+            </div>
             <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              v2.4 Active
+              v2.5 Live
             </span>
           </div>
-          <p className="mt-0.5 text-[11px] text-muted-foreground">Octapus Systems & Solutions</p>
+          <p className="mt-1 text-[11px] font-medium text-muted-foreground">Powered by OCTAPUS Cloud</p>
         </div>
       </div>
     </div>

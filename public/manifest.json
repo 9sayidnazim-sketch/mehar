@@ -1,0 +1,17 @@
+{
+  "name": "OCTAPUS THREDO — Tailoring & Retail POS",
+  "short_name": "OCTAPUS",
+  "description": "Bespoke tailoring, measurement recording, and retail POS software by OCTAPUS",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#6366f1",
+  "icons": [
+    {
+      "src": "/octapus-logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
