@@ -1,17 +1,16 @@
-const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.53';
+import { computeAccessState } from '../../shared/access.js';
 
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
-
-export default async function(req: Request): Promise<Response> {
+export default async function (req: Request): Promise<Response> {
   try {
     if (req.method !== 'POST') {
       return Response.json({ error: 'Method not allowed' }, { status: 405 });
     }
 
     const base44 = createClientFromRequest(req);
-    const svc = db.asServiceRole;
+    const svc = base44.asServiceRole;
 
-    const body = await req.json();
+    const body = await req.json().catch(() => ({}));
     if (!body || !body.type || !body.customer) {
       return Response.json({ error: 'Invalid request' }, { status: 400 });
     }
@@ -30,6 +29,16 @@ export default async function(req: Request): Promise<Response> {
     if (!config || config.enabled === false) {
       return Response.json({ error: 'Online ordering is currently disabled' }, { status: 403 });
     }
+
+    const company = companies.find((c: any) => c.is_default) || companies[0] || null;
+    const businessId = company?.id || 'default_business';
+
+    // D4: Access check on business
+    const access = await computeAccessState(businessId, null, svc);
+    if (!access.allowed) {
+      return Response.json({ error: 'This store is temporarily paused and cannot accept online orders.' }, { status: 403 });
+    }
+
     const autoAccept = config.auto_accept === true;
 
     // Find or create customer by phone
@@ -45,6 +54,7 @@ export default async function(req: Request): Promise<Response> {
         address: customer.address || '',
         city: customer.city || '',
         status: 'active',
+        business_id: businessId
       });
     }
 
@@ -56,6 +66,7 @@ export default async function(req: Request): Promise<Response> {
       const orderId = 'ORD-' + ref;
       await svc.entities.Order.create({
         order_id: orderId,
+        business_id: businessId,
         customer_id: cust.id,
         customer_name: cust.name,
         booking_date: today,
@@ -79,17 +90,18 @@ export default async function(req: Request): Promise<Response> {
         return Response.json({ error: 'Cart is empty' }, { status: 400 });
       }
       const subtotal = items.reduce(
-        (s, i) => s + (i.line_total || (i.price * i.quantity)),
+        (s: number, i: any) => s + (i.line_total || (i.price * i.quantity)),
         0
       );
       const saleId = 'SAL-' + ref;
       await svc.entities.Sale.create({
         sale_id: saleId,
+        business_id: businessId,
         customer_id: cust.id,
         customer_name: cust.name,
         customer_phone: cust.phone,
         customer_email: cust.email || '',
-        items: items.map((i) => ({
+        items: items.map((i: any) => ({
           product_id: i.product_id,
           name: i.name,
           price: i.price,
@@ -112,7 +124,7 @@ export default async function(req: Request): Promise<Response> {
     } else {
       return Response.json({ error: 'Unknown order type' }, { status: 400 });
     }
-  } catch (error) {
+  } catch (error: any) {
     return Response.json({ error: error.message }, { status: 500 });
   }
 }
