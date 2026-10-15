@@ -15,7 +15,12 @@ import {
   handleCouponRedeem,
   getLicenseStatus,
   handleAdminCreateCoupons,
-  handleAdminListCoupons
+  handleAdminListCoupons,
+  getZiinaOAuthAuthorizeUrl,
+  handleZiinaOAuthCallback,
+  getZiinaOAuthStatus,
+  handleZiinaOAuthDisconnect,
+  renderOAuthCallbackHtml
 } from './paywallBackend.js';
 
 function readJsonBody(req) {
@@ -54,6 +59,55 @@ export function whatsappVitePlugin(env = {}) {
   return {
     name: 'thredo-whatsapp-api',
     configureServer(server) {
+      // Ziina OAuth: GET /api/ziina/oauth/authorize
+      server.middlewares.use('/api/ziina/oauth/authorize', (req, res, next) => {
+        if (req.method !== 'GET') return next();
+        const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+        const overrideState = url.searchParams.get('state');
+        const overrideRedirectUri = url.searchParams.get('redirect_uri');
+        const authData = getZiinaOAuthAuthorizeUrl(req.headers.host, overrideState, overrideRedirectUri);
+
+        if (url.searchParams.get('json') === '1' || req.headers.accept?.includes('application/json')) {
+          return sendJson(res, 200, authData);
+        }
+        res.writeHead(302, { Location: authData.authorizeUrl });
+        return res.end();
+      });
+
+      // Ziina OAuth: GET /api/ziina/oauth/callback
+      server.middlewares.use('/api/ziina/oauth/callback', async (req, res, next) => {
+        if (req.method !== 'GET') return next();
+        try {
+          const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+          const queryParams = Object.fromEntries(url.searchParams.entries());
+          const result = await handleZiinaOAuthCallback(queryParams, req.headers.host);
+
+          if (url.searchParams.get('format') === 'json' || req.headers.accept?.includes('application/json')) {
+            return sendJson(res, result.success ? 200 : 400, result);
+          }
+
+          const html = renderOAuthCallbackHtml(result, `http://${req.headers.host || 'localhost'}`);
+          res.writeHead(result.success ? 200 : 400, { 'Content-Type': 'text/html; charset=utf-8' });
+          return res.end(html);
+        } catch (err) {
+          return sendJson(res, 500, { error: err.message });
+        }
+      });
+
+      // Ziina OAuth: GET /api/ziina/oauth/status
+      server.middlewares.use('/api/ziina/oauth/status', (req, res, next) => {
+        if (req.method !== 'GET') return next();
+        return sendJson(res, 200, getZiinaOAuthStatus(req.headers.host));
+      });
+
+      // Ziina OAuth: POST /api/ziina/oauth/disconnect
+      server.middlewares.use('/api/ziina/oauth/disconnect', (req, res, next) => {
+        if (req.method !== 'POST') return next();
+        const adminKey = req.headers['x-admin-key'] || req.headers['admin-key'] || '';
+        const result = handleZiinaOAuthDisconnect(adminKey);
+        return sendJson(res, result.status, result.body);
+      });
+
       // Paywall: GET /api/config
       server.middlewares.use('/api/config', (req, res, next) => {
         if (req.method !== 'GET') return next();

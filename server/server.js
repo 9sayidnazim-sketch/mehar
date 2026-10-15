@@ -20,7 +20,12 @@ import {
   handleCouponRedeem,
   getLicenseStatus,
   handleAdminCreateCoupons,
-  handleAdminListCoupons
+  handleAdminListCoupons,
+  getZiinaOAuthAuthorizeUrl,
+  handleZiinaOAuthCallback,
+  getZiinaOAuthStatus,
+  handleZiinaOAuthDisconnect,
+  renderOAuthCallbackHtml
 } from './paywallBackend.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -95,6 +100,49 @@ const server = http.createServer(async (req, res) => {
   // Health check endpoint for AWS ALB / App Runner / ECS
   if (pathname === '/health' || pathname === '/api/health') {
     return sendJson(res, 200, { status: 'healthy', timestamp: new Date().toISOString() });
+  }
+
+  // Ziina OAuth: GET /api/ziina/oauth/authorize
+  if (pathname === '/api/ziina/oauth/authorize' && req.method === 'GET') {
+    const overrideState = reqUrl.searchParams.get('state');
+    const overrideRedirectUri = reqUrl.searchParams.get('redirect_uri');
+    const authData = getZiinaOAuthAuthorizeUrl(req.headers.host, overrideState, overrideRedirectUri);
+
+    if (reqUrl.searchParams.get('json') === '1' || req.headers.accept?.includes('application/json')) {
+      return sendJson(res, 200, authData);
+    }
+    res.writeHead(302, { Location: authData.authorizeUrl });
+    return res.end();
+  }
+
+  // Ziina OAuth: GET /api/ziina/oauth/callback
+  if (pathname === '/api/ziina/oauth/callback' && req.method === 'GET') {
+    try {
+      const queryParams = Object.fromEntries(reqUrl.searchParams.entries());
+      const result = await handleZiinaOAuthCallback(queryParams, req.headers.host);
+
+      if (reqUrl.searchParams.get('format') === 'json' || req.headers.accept?.includes('application/json')) {
+        return sendJson(res, result.success ? 200 : 400, result);
+      }
+
+      const html = renderOAuthCallbackHtml(result, `http://${req.headers.host || 'localhost'}`);
+      res.writeHead(result.success ? 200 : 400, { 'Content-Type': 'text/html; charset=utf-8' });
+      return res.end(html);
+    } catch (err) {
+      return sendJson(res, 500, { error: err.message });
+    }
+  }
+
+  // Ziina OAuth: GET /api/ziina/oauth/status
+  if (pathname === '/api/ziina/oauth/status' && req.method === 'GET') {
+    return sendJson(res, 200, getZiinaOAuthStatus(req.headers.host));
+  }
+
+  // Ziina OAuth: POST /api/ziina/oauth/disconnect
+  if (pathname === '/api/ziina/oauth/disconnect' && req.method === 'POST') {
+    const adminKey = req.headers['x-admin-key'] || req.headers['admin-key'] || '';
+    const result = handleZiinaOAuthDisconnect(adminKey);
+    return sendJson(res, result.status, result.body);
   }
 
   // Paywall API Route: GET /api/config

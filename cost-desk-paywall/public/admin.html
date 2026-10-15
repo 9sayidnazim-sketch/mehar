@@ -543,6 +543,53 @@
       </div>
     </div>
 
+    <!-- Ziina UAE Wallet & OAuth Integration -->
+    <div class="section-box" style="margin-bottom: 28px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 8px;">
+        <div class="section-title" style="margin-bottom: 0;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2.2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+          <span>Ziina UAE Wallet & OAuth 2.0 Integration</span>
+        </div>
+        <div id="ziinaStatusBadge" class="pill-filter" style="cursor: default; font-size: 0.78rem; font-weight: 700; text-transform: uppercase;">
+          Checking...
+        </div>
+      </div>
+      <p class="section-desc">Connect your Ziina Business account using OpenID Connect (OIDC) to accept live UAE card payments directly into your verified merchant wallet.</p>
+
+      <div style="background: rgba(0, 0, 0, 0.25); border: 1px solid var(--card-border); border-radius: 14px; padding: 18px; margin: 18px 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px;">
+        <div>
+          <div style="font-size: 0.74rem; color: var(--text-dim); text-transform: uppercase; font-weight: 700; margin-bottom: 4px;">Authorization Endpoint</div>
+          <div style="font-family: var(--mono); font-size: 0.8rem; color: #a5b4fc; word-break: break-all;">https://auth.ziina.com/oidc/auth</div>
+        </div>
+        <div>
+          <div style="font-size: 0.74rem; color: var(--text-dim); text-transform: uppercase; font-weight: 700; margin-bottom: 4px;">Registered Callback (Redirect URI)</div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div id="ziinaRedirectUriText" style="font-family: var(--mono); font-size: 0.8rem; color: #cbd5e1; word-break: break-all;">...</div>
+            <button type="button" onclick="copyRedirectUri()" class="btn-copy-code" title="Copy Redirect URI">Copy</button>
+          </div>
+        </div>
+        <div>
+          <div style="font-size: 0.74rem; color: var(--text-dim); text-transform: uppercase; font-weight: 700; margin-bottom: 4px;">Permissions / Scopes</div>
+          <div style="font-family: var(--mono); font-size: 0.8rem; color: #34d399;">read_account + write_payment_intents</div>
+        </div>
+        <div>
+          <div style="font-size: 0.74rem; color: var(--text-dim); text-transform: uppercase; font-weight: 700; margin-bottom: 4px;">Live Wallet / Account</div>
+          <div id="ziinaAccountDetail" style="font-size: 0.82rem; color: var(--text-muted);">Ready to connect</div>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+        <button id="btnConnectZiina" onclick="handleConnectZiina()" class="btn-primary" style="height: 42px; margin-bottom: 0;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+          <span>Connect Ziina Account</span>
+        </button>
+        <button id="btnDisconnectZiina" onclick="handleDisconnectZiina()" class="btn-nav" style="display: none; height: 42px; color: #f87171; border-color: rgba(239, 68, 68, 0.3);">
+          <span>Disconnect Wallet</span>
+        </button>
+        <span id="ziinaHint" style="font-size: 0.8rem; color: var(--text-dim);">Opens Ziina's secure authentication screen.</span>
+      </div>
+    </div>
+
     <!-- Generator Section -->
     <div class="section-box">
       <div class="section-title">
@@ -674,6 +721,7 @@
         couponsData = data.coupons || [];
         updateStats(data.stats);
         renderTable();
+        loadZiinaOAuthStatus();
         return true;
       } catch (err) {
         console.error('Failed to fetch admin coupons', err);
@@ -837,6 +885,105 @@
     function closeBatchModal() {
       document.getElementById('batchModal').classList.remove('active');
     }
+
+    let cachedRedirectUri = '';
+
+    async function loadZiinaOAuthStatus() {
+      try {
+        const res = await fetch('/api/ziina/oauth/status');
+        if (!res.ok) return;
+        const data = await res.json();
+
+        cachedRedirectUri = data.redirectUri || `${window.location.origin}/api/ziina/oauth/callback`;
+        const redirectEl = document.getElementById('ziinaRedirectUriText');
+        if (redirectEl) redirectEl.textContent = cachedRedirectUri;
+
+        const badge = document.getElementById('ziinaStatusBadge');
+        const accDetail = document.getElementById('ziinaAccountDetail');
+        const btnConnect = document.getElementById('btnConnectZiina');
+        const btnDisconnect = document.getElementById('btnDisconnectZiina');
+
+        if (data.connected) {
+          if (badge) {
+            badge.textContent = 'Wallet Connected';
+            badge.style.background = 'rgba(16, 185, 129, 0.2)';
+            badge.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+            badge.style.color = '#34d399';
+          }
+
+          const accName = data.account?.name || data.account?.business_name || data.account?.id || 'Active Ziina Merchant';
+          if (accDetail) {
+            accDetail.innerHTML = `<strong style="color: #34d399;">Active:</strong> ${accName}`;
+          }
+          if (btnConnect) {
+            btnConnect.querySelector('span').textContent = 'Re-authenticate Ziina';
+          }
+          if (btnDisconnect) {
+            btnDisconnect.style.display = 'inline-flex';
+          }
+        } else {
+          if (badge) {
+            badge.textContent = data.hasStaticApiKey ? 'Static API Key Active' : 'Not Connected';
+            badge.style.background = 'rgba(255, 255, 255, 0.05)';
+            badge.style.borderColor = 'var(--card-border)';
+            badge.style.color = 'var(--text-muted)';
+          }
+
+          if (accDetail) {
+            accDetail.textContent = data.hasStaticApiKey ? 'Using default API key fallback' : 'Awaiting OAuth connection';
+          }
+          if (btnConnect) {
+            btnConnect.querySelector('span').textContent = 'Connect Ziina Account';
+          }
+          if (btnDisconnect) {
+            btnDisconnect.style.display = 'none';
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to load Ziina OAuth status', err);
+      }
+    }
+
+    function copyRedirectUri() {
+      if (!cachedRedirectUri) return;
+      navigator.clipboard.writeText(cachedRedirectUri).then(() => {
+        alert('Registered Redirect URI copied to clipboard: \n' + cachedRedirectUri);
+      });
+    }
+
+    function handleConnectZiina() {
+      const authUrl = `/api/ziina/oauth/authorize`;
+      const w = 600, h = 720;
+      const left = Math.max(0, (window.screen.width - w) / 2);
+      const top = Math.max(0, (window.screen.height - h) / 2);
+      window.open(authUrl, 'ziina_oauth_popup', `width=${w},height=${h},top=${top},left=${left}`);
+    }
+
+    async function handleDisconnectZiina() {
+      if (!confirm('Are you sure you want to disconnect your Ziina wallet session?')) return;
+      const key = sessionStorage.getItem(ADMIN_KEY_STORAGE);
+      try {
+        const res = await fetch('/api/ziina/oauth/disconnect', {
+          method: 'POST',
+          headers: { 'x-admin-key': key }
+        });
+        if (res.ok) {
+          alert('Ziina OAuth session unlinked successfully.');
+          loadZiinaOAuthStatus();
+        }
+      } catch (e) {
+        alert('Disconnect failed: ' + e.message);
+      }
+    }
+
+    window.addEventListener('message', (e) => {
+      if (e.data?.type === 'ziina_oauth_result') {
+        loadZiinaOAuthStatus();
+        if (e.data.success) {
+          alert('Ziina merchant wallet connected successfully!');
+        }
+      }
+    });
   </script>
 </body>
 </html>

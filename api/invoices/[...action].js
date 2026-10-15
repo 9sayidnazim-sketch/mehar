@@ -13,7 +13,12 @@ import {
   handleCouponRedeem,
   getLicenseStatus,
   handleAdminCreateCoupons,
-  handleAdminListCoupons
+  handleAdminListCoupons,
+  getZiinaOAuthAuthorizeUrl,
+  handleZiinaOAuthCallback,
+  getZiinaOAuthStatus,
+  handleZiinaOAuthDisconnect,
+  renderOAuthCallbackHtml
 } from '../../server/paywallBackend.js';
 
 function readJsonBody(req) {
@@ -83,6 +88,67 @@ export default async function handler(req, res) {
   const isCouponRedeem = rawPath.includes('coupon/redeem') || rawPath.includes('redeem');
   const isAccess = rawPath.includes('access');
   const isAdminCoupons = rawPath.includes('admin/coupons') || rawPath.includes('coupons');
+
+  // Ziina OAuth 2.0 / OIDC endpoints
+  const isZiinaAuth = rawPath.includes('ziina') && (rawPath.includes('auth') || rawPath.includes('authorize'));
+  const isZiinaCallback = rawPath.includes('ziina') && rawPath.includes('callback');
+  const isZiinaStatus = rawPath.includes('ziina') && rawPath.includes('status');
+  const isZiinaDisconnect = rawPath.includes('ziina') && rawPath.includes('disconnect');
+
+  // GET /api/ziina/oauth/authorize
+  if (isZiinaAuth && req.method === 'GET') {
+    const overrideState = reqUrl.searchParams.get('state') || req.query?.state;
+    const overrideRedirectUri = reqUrl.searchParams.get('redirect_uri') || req.query?.redirect_uri;
+    const authData = getZiinaOAuthAuthorizeUrl(host, overrideState, overrideRedirectUri);
+
+    const wantsJson = reqUrl.searchParams.get('json') === '1' ||
+                      req.query?.json === '1' ||
+                      req.headers.accept?.includes('application/json');
+
+    if (wantsJson) {
+      return sendJson(res, 200, authData);
+    }
+
+    res.writeHead(302, { Location: authData.authorizeUrl });
+    return res.end();
+  }
+
+  // GET /api/ziina/oauth/callback
+  if (isZiinaCallback && req.method === 'GET') {
+    try {
+      const queryParams = Object.fromEntries(reqUrl.searchParams.entries());
+      if (req.query && typeof req.query === 'object') {
+        Object.assign(queryParams, req.query);
+      }
+      const result = await handleZiinaOAuthCallback(queryParams, host);
+      const wantsJson = reqUrl.searchParams.get('format') === 'json' ||
+                        req.headers.accept?.includes('application/json');
+
+      if (wantsJson) {
+        return sendJson(res, result.success ? 200 : 400, result);
+      }
+
+      const html = renderOAuthCallbackHtml(result, `https://${host}`);
+      res.writeHead(result.success ? 200 : 400, {
+        'Content-Type': 'text/html; charset=utf-8'
+      });
+      return res.end(html);
+    } catch (err) {
+      return sendJson(res, 500, { error: err.message });
+    }
+  }
+
+  // GET /api/ziina/oauth/status
+  if (isZiinaStatus && req.method === 'GET') {
+    return sendJson(res, 200, getZiinaOAuthStatus(host));
+  }
+
+  // POST /api/ziina/oauth/disconnect
+  if (isZiinaDisconnect && req.method === 'POST') {
+    const adminKey = req.headers['x-admin-key'] || req.headers['admin-key'] || '';
+    const result = handleZiinaOAuthDisconnect(adminKey);
+    return sendJson(res, result.status, result.body);
+  }
 
   if (isConfig && req.method === 'GET') {
     return sendJson(res, 200, getPaywallConfig(host));
@@ -231,8 +297,8 @@ export default async function handler(req, res) {
   }
 
   return sendJson(res, 404, {
-    error: `Endpoint not found: ${pathname}`,
-    action,
+    error: `Endpoint not found: ${reqUrl.pathname}`,
+    path: queryString,
     matchedPath
   });
 }
