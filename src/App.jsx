@@ -21,6 +21,7 @@ import Settings from '@/pages/Settings';
 import OrderOnline from '@/pages/OrderOnline';
 import OnlineOrders from '@/pages/OnlineOrders';
 import Accounts from '@/pages/Accounts';
+import Paywall from '@/pages/Paywall';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -58,6 +59,7 @@ const AuthenticatedApp = () => {
         <Route path="/settings" element={<Settings />} />
         <Route path="/online-orders" element={<OnlineOrders />} />
         <Route path="/accounts" element={<Accounts />} />
+        <Route path="/paywall" element={<Paywall />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
