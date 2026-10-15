@@ -1,0 +1,54 @@
+{
+  "name": "AppNotification",
+  "type": "object",
+  "properties": {
+    "business_id": {
+      "type": "string",
+      "title": "Business ID"
+    },
+    "user_id": {
+      "type": "string",
+      "title": "User ID"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "payment_submitted",
+        "subscription_active",
+        "payment_rejected",
+        "coupon_applied",
+        "expiring_72h",
+        "expiring_24h",
+        "access_ended",
+        "access_revoked"
+      ]
+    },
+    "title": {
+      "type": "string",
+      "title": "Notification Title"
+    },
+    "message": {
+      "type": "string",
+      "title": "Notification Message"
+    },
+    "dedupe_key": {
+      "type": "string",
+      "title": "Deduplication Key"
+    },
+    "link": {
+      "type": "string",
+      "title": "Action Link"
+    },
+    "is_read": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "business_id",
+    "type",
+    "title",
+    "message",
+    "dedupe_key"
+  ]
+}

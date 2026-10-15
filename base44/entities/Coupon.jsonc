@@ -1,0 +1,43 @@
+{
+  "name": "Coupon",
+  "type": "object",
+  "properties": {
+    "code": {
+      "type": "string",
+      "title": "Coupon Code (Uppercase)"
+    },
+    "duration_hours": {
+      "type": "number",
+      "title": "Duration in Hours",
+      "default": 48
+    },
+    "max_redemptions": {
+      "type": "number",
+      "title": "Max Redemptions",
+      "default": 1
+    },
+    "redemption_count": {
+      "type": "number",
+      "title": "Current Redemptions",
+      "default": 0
+    },
+    "valid_until": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Valid Until (UTC)"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "created_by_user_id": {
+      "type": "string",
+      "title": "Created By User ID"
+    }
+  },
+  "required": [
+    "code",
+    "duration_hours",
+    "max_redemptions"
+  ]
+}

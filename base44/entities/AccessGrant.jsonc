@@ -1,0 +1,52 @@
+{
+  "name": "AccessGrant",
+  "type": "object",
+  "properties": {
+    "business_id": {
+      "type": "string",
+      "title": "Business ID"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "subscription",
+        "coupon",
+        "provisional",
+        "admin_override"
+      ]
+    },
+    "source_id": {
+      "type": "string",
+      "title": "Source ID"
+    },
+    "starts_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Starts At (UTC)"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Expires At (UTC)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "expired",
+        "revoked"
+      ],
+      "default": "active"
+    },
+    "reason": {
+      "type": "string",
+      "title": "Reason or Notes"
+    }
+  },
+  "required": [
+    "business_id",
+    "type",
+    "expires_at",
+    "status"
+  ]
+}

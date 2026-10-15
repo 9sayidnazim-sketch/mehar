@@ -1,0 +1,35 @@
+{
+  "name": "AuditLog",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "title": "User ID"
+    },
+    "user_email": {
+      "type": "string",
+      "title": "User Email"
+    },
+    "action": {
+      "type": "string",
+      "title": "Action Performed"
+    },
+    "entity_name": {
+      "type": "string",
+      "title": "Entity Name"
+    },
+    "entity_id": {
+      "type": "string",
+      "title": "Entity ID"
+    },
+    "details": {
+      "type": "string",
+      "title": "Details JSON"
+    }
+  },
+  "required": [
+    "user_id",
+    "action",
+    "entity_name"
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "name": "Subscription",
+  "type": "object",
+  "properties": {
+    "business_id": {
+      "type": "string",
+      "title": "Business ID"
+    },
+    "plan_id": {
+      "type": "string",
+      "title": "Plan ID"
+    },
+    "plan_name": {
+      "type": "string",
+      "title": "Plan Name"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "expired",
+        "cancelled"
+      ],
+      "default": "active"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Start Date (UTC)"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Expires At (UTC)"
+    },
+    "payment_submission_id": {
+      "type": "string",
+      "title": "Payment Submission ID"
+    }
+  },
+  "required": [
+    "business_id",
+    "status",
+    "expires_at"
+  ]
+}

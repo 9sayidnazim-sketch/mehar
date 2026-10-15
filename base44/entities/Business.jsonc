@@ -1,0 +1,39 @@
+{
+  "name": "Business",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "title": "Business Name"
+    },
+    "slug": {
+      "type": "string",
+      "title": "Slug"
+    },
+    "contact_name": {
+      "type": "string",
+      "title": "Contact Person"
+    },
+    "email": {
+      "type": "string",
+      "title": "Email"
+    },
+    "phone": {
+      "type": "string",
+      "title": "Phone"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "suspended",
+        "pending"
+      ],
+      "default": "active"
+    }
+  },
+  "required": [
+    "name",
+    "email"
+  ]
+}

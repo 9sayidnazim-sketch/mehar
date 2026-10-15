@@ -1,0 +1,38 @@
+{
+  "name": "CouponRedemption",
+  "type": "object",
+  "properties": {
+    "coupon_id": {
+      "type": "string",
+      "title": "Coupon ID"
+    },
+    "coupon_code": {
+      "type": "string",
+      "title": "Coupon Code"
+    },
+    "business_id": {
+      "type": "string",
+      "title": "Business ID"
+    },
+    "user_id": {
+      "type": "string",
+      "title": "User ID"
+    },
+    "redeemed_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Redeemed At (UTC)"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Expires At (UTC)"
+    }
+  },
+  "required": [
+    "coupon_id",
+    "business_id",
+    "redeemed_at",
+    "expires_at"
+  ]
+}

@@ -1,0 +1,95 @@
+{
+  "name": "PaymentSubmission",
+  "type": "object",
+  "properties": {
+    "business_id": {
+      "type": "string",
+      "title": "Business ID"
+    },
+    "user_id": {
+      "type": "string",
+      "title": "User ID"
+    },
+    "customer_name": {
+      "type": "string",
+      "title": "Customer Name"
+    },
+    "business_name": {
+      "type": "string",
+      "title": "Business Name"
+    },
+    "email": {
+      "type": "string",
+      "title": "Email"
+    },
+    "phone": {
+      "type": "string",
+      "title": "Phone (E.164)"
+    },
+    "plan_id": {
+      "type": "string",
+      "title": "Plan ID"
+    },
+    "plan_name": {
+      "type": "string",
+      "title": "Plan Name"
+    },
+    "price_label": {
+      "type": "string",
+      "title": "Price Label"
+    },
+    "amount": {
+      "type": "number",
+      "title": "Amount"
+    },
+    "duration_days": {
+      "type": "number",
+      "title": "Duration Days"
+    },
+    "payment_url": {
+      "type": "string",
+      "title": "Payment URL"
+    },
+    "reference_number": {
+      "type": "string",
+      "title": "Payment Reference (6-64 chars)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "awaiting_payment",
+        "pending_verification",
+        "verified",
+        "rejected"
+      ],
+      "default": "awaiting_payment"
+    },
+    "rejection_reason": {
+      "type": "string",
+      "title": "Rejection Reason"
+    },
+    "provisional_expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Provisional Access Expiry (UTC)"
+    },
+    "verified_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Verified At (UTC)"
+    },
+    "verified_by_user_id": {
+      "type": "string",
+      "title": "Verified By User ID"
+    },
+    "idempotency_key": {
+      "type": "string",
+      "title": "Idempotency Key"
+    }
+  },
+  "required": [
+    "business_id",
+    "plan_id",
+    "status"
+  ]
+}

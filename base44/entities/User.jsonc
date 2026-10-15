@@ -1,4 +1,6 @@
 {
+  "name": "User",
+  "type": "object",
   "properties": {
     "role": {
       "type": "string",
@@ -6,12 +8,23 @@
       "enum": [
         "admin",
         "user"
-      ]
+      ],
+      "default": "user"
+    },
+    "business_id": {
+      "type": "string",
+      "description": "Tenant business ID"
+    },
+    "full_name": {
+      "type": "string",
+      "description": "User's full name"
+    },
+    "phone": {
+      "type": "string",
+      "description": "User's phone number in E.164 format"
     }
   },
   "required": [
     "role"
-  ],
-  "name": "User",
-  "type": "object"
+  ]
 }
