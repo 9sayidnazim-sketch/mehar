@@ -1,0 +1,1303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cost Desk — Unlock Full Professional Access</title>
+  <meta name="description" content="Unlock Cost Desk with flexible yearly subscription or lifetime one-time purchase. Powered by Ziina UAE secure payments." />
+  
+  <!-- Modern Google Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --bg: #07090e;
+      --card-bg: rgba(15, 23, 42, 0.72);
+      --card-border: rgba(255, 255, 255, 0.09);
+      --card-hover-border: rgba(99, 102, 241, 0.35);
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --emerald: #10b981;
+      --emerald-glow: rgba(16, 185, 129, 0.25);
+      --accent: #06b6d4;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --radius: 16px;
+      --font: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      --mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.16) 0%, transparent 50%),
+        radial-gradient(circle at 85% 30%, rgba(6, 182, 212, 0.1) 0%, transparent 40%),
+        radial-gradient(circle at 15% 70%, rgba(16, 185, 129, 0.08) 0%, transparent 45%);
+      color: var(--text);
+      font-family: var(--font);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow-x: hidden;
+      line-height: 1.5;
+    }
+
+    /* Ambient dynamic glow spots */
+    .glow-blob {
+      position: absolute;
+      width: 450px;
+      height: 450px;
+      border-radius: 50%;
+      filter: blur(120px);
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.5;
+    }
+    .glow-top-left { top: -100px; left: -100px; background: rgba(99, 102, 241, 0.3); }
+    .glow-mid-right { top: 35%; right: -120px; background: rgba(16, 185, 129, 0.2); }
+
+    .container {
+      width: 100%;
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 40px 24px 60px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Header Nav */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 48px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .brand-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #6366f1 0%, #06b6d4 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 24px rgba(99, 102, 241, 0.35);
+    }
+
+    .brand-icon svg {
+      width: 22px;
+      height: 22px;
+      fill: none;
+      stroke: white;
+      stroke-width: 2.2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .brand-title {
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #ffffff 40%, #cbd5e1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .badge-test {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.28);
+      color: #fbbf24;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border-radius: 9999px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .badge-test-dot {
+      width: 6px;
+      height: 6px;
+      background: #fbbf24;
+      border-radius: 50%;
+      animation: pulse 1.8s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+
+    /* Hero section */
+    .hero {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+
+    .pill-launch {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(12px);
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #cbd5e1;
+      margin-bottom: 20px;
+    }
+
+    .pill-launch span.highlight {
+      color: #38bdf8;
+    }
+
+    .hero-title {
+      font-size: clamp(2.2rem, 5vw, 3.4rem);
+      font-weight: 800;
+      letter-spacing: -0.035em;
+      line-height: 1.15;
+      margin-bottom: 16px;
+      background: linear-gradient(180deg, #ffffff 20%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-subtitle {
+      font-size: clamp(1rem, 2vw, 1.15rem);
+      color: var(--text-muted);
+      max-width: 620px;
+      margin: 0 auto;
+    }
+
+    /* Anchor pricing banner */
+    .anchor-pricing {
+      margin-top: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .crossed-price {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--text-dim);
+      text-decoration: line-through;
+      text-decoration-color: #ef4444;
+      text-decoration-thickness: 2.5px;
+    }
+
+    .discount-badge {
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(244, 63, 94, 0.15));
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      color: #f87171;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Notification / Status Banners */
+    .banner {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 16px 20px;
+      border-radius: 12px;
+      margin-bottom: 32px;
+      backdrop-filter: blur(12px);
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .banner.active { display: flex; }
+
+    .banner-success {
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #34d399;
+    }
+
+    .banner-warning {
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      color: #fbbf24;
+    }
+
+    .banner-danger {
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #f87171;
+    }
+
+    .banner-info {
+      background: rgba(99, 102, 241, 0.12);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      color: #a5b4fc;
+    }
+
+    .banner-content {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.95rem;
+    }
+
+    .banner-btn {
+      padding: 8px 16px;
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      white-space: nowrap;
+      transition: all 0.2s ease;
+    }
+
+    .banner-btn:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    /* Pricing Plans Grid */
+    .plans-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 28px;
+      margin-bottom: 48px;
+    }
+
+    .plan-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      backdrop-filter: blur(16px);
+      padding: 36px 32px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .plan-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--card-hover-border);
+      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.6);
+    }
+
+    .plan-card.featured {
+      border-color: rgba(99, 102, 241, 0.55);
+      background: linear-gradient(180deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.85) 100%);
+      box-shadow: 0 10px 40px -10px rgba(99, 102, 241, 0.35);
+    }
+
+    .featured-tag {
+      position: absolute;
+      top: -14px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      color: white;
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 5px 16px;
+      border-radius: 9999px;
+      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.5);
+    }
+
+    .plan-header {
+      margin-bottom: 24px;
+    }
+
+    .plan-name {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .plan-badge-duration {
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.06);
+      color: #94a3b8;
+    }
+
+    .plan-card.featured .plan-badge-duration {
+      background: rgba(99, 102, 241, 0.2);
+      color: #c7d2fe;
+    }
+
+    .plan-description {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      min-height: 40px;
+    }
+
+    .price-wrapper {
+      margin-bottom: 28px;
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+
+    .price-currency {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    .price-amount {
+      font-size: 3rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    .price-period {
+      font-size: 0.88rem;
+      color: var(--text-dim);
+    }
+
+    .features-list {
+      list-style: none;
+      margin-bottom: 32px;
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .feature-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      font-size: 0.92rem;
+      color: #cbd5e1;
+    }
+
+    .feature-check {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .feature-check svg {
+      width: 12px;
+      height: 12px;
+      stroke-width: 3;
+      stroke: currentColor;
+      fill: none;
+    }
+
+    .btn-action {
+      width: 100%;
+      padding: 16px 24px;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: all 0.2s ease;
+      text-decoration: none;
+      border: none;
+      outline: none;
+    }
+
+    .btn-yearly {
+      background: rgba(255, 255, 255, 0.08);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .btn-yearly:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: rgba(255, 255, 255, 0.3);
+      transform: translateY(-1px);
+    }
+
+    .btn-lifetime {
+      background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+      color: white;
+      box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4);
+    }
+
+    .btn-lifetime:hover:not(:disabled) {
+      background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+      box-shadow: 0 10px 28px rgba(99, 102, 241, 0.55);
+      transform: translateY(-1px);
+    }
+
+    .btn-action:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Coupon pass card */
+    .coupon-section {
+      background: var(--card-bg);
+      border: 1px dashed rgba(255, 255, 255, 0.16);
+      border-radius: var(--radius);
+      backdrop-filter: blur(16px);
+      padding: 32px;
+      margin-bottom: 48px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    @media (min-width: 768px) {
+      .coupon-section {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+      }
+    }
+
+    .coupon-info {
+      max-width: 480px;
+    }
+
+    .coupon-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+
+    .coupon-subtitle {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+    }
+
+    .coupon-form {
+      display: flex;
+      gap: 12px;
+      width: 100%;
+      max-width: 420px;
+      flex-direction: column;
+    }
+
+    @media (min-width: 500px) {
+      .coupon-form {
+        flex-direction: row;
+      }
+    }
+
+    .input-coupon {
+      flex: 1;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      color: white;
+      padding: 14px 18px;
+      border-radius: 10px;
+      font-family: var(--mono);
+      font-size: 0.95rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      outline: none;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .input-coupon:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+    }
+
+    .btn-coupon {
+      padding: 14px 22px;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      color: #34d399;
+      font-weight: 700;
+      border-radius: 10px;
+      cursor: pointer;
+      font-family: inherit;
+      white-space: nowrap;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-coupon:hover:not(:disabled) {
+      background: rgba(16, 185, 129, 0.25);
+      border-color: #34d399;
+      transform: translateY(-1px);
+    }
+
+    .coupon-error-msg {
+      font-size: 0.82rem;
+      color: #f87171;
+      margin-top: 4px;
+      display: none;
+    }
+
+    /* Trust Footer */
+    .trust-footer {
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      padding-top: 36px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      text-align: center;
+    }
+
+    .ziina-badge {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .ziina-text {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .payment-icons {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .pay-icon-pill {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #e2e8f0;
+      letter-spacing: 0.03em;
+    }
+
+    .admin-link {
+      font-size: 0.82rem;
+      color: var(--text-dim);
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+
+    .admin-link:hover {
+      color: var(--text-muted);
+      text-decoration: underline;
+    }
+
+    /* Confetti Canvas for Successful Verification */
+    #confettiCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* Verification Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      z-index: 1000;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-box {
+      background: #0f172a;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 20px;
+      max-width: 480px;
+      width: 100%;
+      padding: 36px;
+      text-align: center;
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8);
+      position: relative;
+    }
+
+    .modal-icon {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: rgba(16, 185, 129, 0.15);
+      border: 2px solid #10b981;
+      color: #34d399;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+    }
+
+    .modal-icon svg {
+      width: 32px;
+      height: 32px;
+      stroke-width: 2.5;
+      stroke: currentColor;
+      fill: none;
+    }
+
+    .modal-title {
+      font-size: 1.5rem;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: white;
+    }
+
+    .modal-desc {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+      line-height: 1.6;
+    }
+
+    .modal-meta-box {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 24px;
+      text-align: left;
+      font-size: 0.88rem;
+    }
+
+    .modal-meta-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .modal-meta-row:last-child { margin-bottom: 0; }
+    .modal-meta-label { color: var(--text-dim); }
+    .modal-meta-val { font-weight: 600; color: #f1f5f9; }
+  </style>
+</head>
+<body>
+  <div class="glow-blob glow-top-left"></div>
+  <div class="glow-blob glow-mid-right"></div>
+  <canvas id="confettiCanvas"></canvas>
+
+  <div class="container">
+    <!-- Top Bar -->
+    <header>
+      <a href="/" class="brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        </div>
+        <div>
+          <span class="brand-title">Cost Desk</span>
+        </div>
+      </a>
+
+      <div id="testModeBadge" class="badge-test" style="display: none;">
+        <span class="badge-test-dot"></span>
+        <span>Ziina Test Sandbox</span>
+      </div>
+    </header>
+
+    <!-- Dynamic Notification / Status Banners -->
+    <div id="bannerActiveLicense" class="banner banner-success">
+      <div class="banner-content">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <span id="activeLicenseText">You already have an active license!</span>
+      </div>
+      <a id="btnGoToApp" href="/app.html" class="banner-btn">Launch Cost Desk &rarr;</a>
+    </div>
+
+    <div id="bannerPaymentAlert" class="banner">
+      <div class="banner-content">
+        <span id="paymentAlertIcon"></span>
+        <span id="paymentAlertText"></span>
+      </div>
+    </div>
+
+    <!-- Hero Title & Anchor Pricing -->
+    <div class="hero">
+      <div class="pill-launch">
+        <span>⚡ Launch Special</span>
+        <span style="opacity: 0.4">•</span>
+        <span class="highlight">UAE Tailoring & Retail POS Engine</span>
+      </div>
+      
+      <h1 class="hero-title">Unlock Full Access to Cost Desk</h1>
+      
+      <p class="hero-subtitle">
+        Automate your garment costing, inventory, customer tailoring measurements, and instant WhatsApp invoice dispatches.
+      </p>
+
+      <div class="anchor-pricing">
+        <span class="crossed-price" id="anchorPrice">AED 6,000</span>
+        <span class="discount-badge">Up to 63% Off Today</span>
+      </div>
+    </div>
+
+    <!-- Plans Cards -->
+    <div class="plans-grid">
+      <!-- Yearly Plan -->
+      <div class="plan-card" id="cardYearly">
+        <div class="plan-header">
+          <div class="plan-name">
+            <span>Yearly Access</span>
+            <span class="plan-badge-duration">365 Days</span>
+          </div>
+          <div class="plan-description">
+            Complete cost engineering and invoicing for growing tailor boutiques.
+          </div>
+        </div>
+
+        <div class="price-wrapper">
+          <span class="price-currency">AED</span>
+          <span class="price-amount" id="priceYearly">2,222</span>
+          <span class="price-period">/ year</span>
+        </div>
+
+        <ul class="features-list">
+          <li class="feature-item">
+            <span class="feature-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
+            <span>Full 365 days unlimited access</span>
+          </li>
+          <li class="feature-item">
+            <span class="feature-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
+            <span>Accurate fabric, labor & margin calculations</span>
+          </li>
+          <li class="feature-item">
+            <span class="feature-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
+            <span>Instant PDF Tax Invoices & WhatsApp dispatch</span>
+          </li>
+          <li class="feature-item">
+            <span class="feature-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
+            <span>Customer order & balance tracking</span>
+          </li>
+          <li class="feature-item">
+            <span class="feature-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
+            <span>Single annual payment (No surprise charges)</span>
+          </li>
+        </ul>
+
+        <button class="btn-action btn-yearly" id="btnCheckoutYearly" onclick="startCheckout('yearly')">
+          <span>Subscribe &mdash; AED 2,222</span>
+        </button>
+      </div>
+
+      <!-- One-time Lifetime Plan (Featured) -->
+      <div class="plan-card featured" id="cardLifetime">
+        <div class="featured-tag">Most Popular &bull; Best Value</div>
+        
+        <div class="plan-header">
+          <div class="plan-name">
+            <span>One-Time Purchase</span>
+            <span class="plan-badge-duration" style="background: rgba(99, 102, 241, 0.3); color: #e0e7ff;">Lifetime</span>
+          </div>
+          <div class="plan-description">
+            Pay once and own Cost Desk forever with zero recurring subscription fees.
+          </div>
+        </div>
+
+        <div class="price-wrapper">
+          <span class="price-currency">AED</span>
+          <span class="price-amount" id="priceLifetime">3,200</span>
+          <span class="price-period">one-time</span>
+        </div>
+
+        <ul class="features-list">
+          <li class="feature-item">
+            <span class="feature-check" style="background: rgba(99, 102, 241, 0.25); color: #818cf8;"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
+            <span><strong>Lifetime unrestricted access</strong> (Never expires)</span>
+          </li>
+          <li class="feature-item">
+            <span class="feature-check" style="background: rgba(99, 102, 241, 0.25); color: #818cf8;"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
+            <span>All current and future software updates included</span>
+          </li>
+          <li class="feature-item">
+            <span class="feature-check" style="background: rgba(99, 102, 241, 0.25); color: #818cf8;"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
+            <span>Multi-device & multiple boutique terminals</span>
+          </li>
+          <li class="feature-item">
+            <span class="feature-check" style="background: rgba(99, 102, 241, 0.25); color: #818cf8;"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
+            <span>Unlimited WhatsApp dispatches & PDF export</span>
+          </li>
+          <li class="feature-item">
+            <span class="feature-check" style="background: rgba(99, 102, 241, 0.25); color: #818cf8;"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
+            <span>VIP onboarding & priority support</span>
+          </li>
+        </ul>
+
+        <button class="btn-action btn-lifetime" id="btnCheckoutLifetime" onclick="startCheckout('lifetime')">
+          <span>Purchase &mdash; AED 3,200</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 48-Hour Coupon Pass Section -->
+    <div class="coupon-section">
+      <div class="coupon-info">
+        <div class="coupon-title">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+          <span>Have a 48-Hour Trial Pass?</span>
+        </div>
+        <p class="coupon-subtitle">
+          Activate full, un-gated access to test Cost Desk in your workshop for 48 hours. No credit card required.
+        </p>
+      </div>
+
+      <div class="coupon-form">
+        <div style="display: flex; flex-direction: column; width: 100%;">
+          <input 
+            type="text" 
+            id="couponInput" 
+            class="input-coupon" 
+            placeholder="CD-XXXX-XXXX" 
+            maxlength="20" 
+            autocomplete="off" 
+            spellcheck="false"
+          />
+          <div id="couponError" class="coupon-error-msg"></div>
+        </div>
+        <button class="btn-coupon" id="btnRedeemCoupon" onclick="redeemCoupon()">
+          <span>Activate Pass</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Trust & Ziina UAE Compliance -->
+    <footer class="trust-footer">
+      <div class="ziina-badge">
+        <div class="ziina-text">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <span>Secured by <strong>Ziina</strong> (Licensed by Central Bank of the UAE)</span>
+        </div>
+        <div class="payment-icons">
+          <span class="pay-icon-pill">Apple Pay</span>
+          <span class="pay-icon-pill">Google Pay</span>
+          <span class="pay-icon-pill">Visa / Mastercard</span>
+        </div>
+      </div>
+
+      <a href="/admin.html" class="admin-link">Staff &amp; Admin Console &rarr;</a>
+    </footer>
+  </div>
+
+  <!-- Verification / Success Modal -->
+  <div id="successModal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-icon">
+        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <h2 class="modal-title" id="modalTitle">Access Granted!</h2>
+      <p class="modal-desc" id="modalDesc">
+        Your payment was confirmed. You now have full access to Cost Desk.
+      </p>
+
+      <div class="modal-meta-box">
+        <div class="modal-meta-row">
+          <span class="modal-meta-label">Plan</span>
+          <span class="modal-meta-val" id="modalPlanName">Lifetime Access</span>
+        </div>
+        <div class="modal-meta-row">
+          <span class="modal-meta-label">Access Duration</span>
+          <span class="modal-meta-val" id="modalExpiresAt">Permanent</span>
+        </div>
+      </div>
+
+      <a id="btnEnterAppModal" href="/app.html" class="btn-action btn-lifetime">
+        <span>Enter Cost Desk &rarr;</span>
+      </a>
+    </div>
+  </div>
+
+  <script>
+    // Application State
+    let config = {
+      listPrice: 6000,
+      plans: {
+        yearly: { label: 'Yearly', amount: 2222, days: 365 },
+        lifetime: { label: 'One-time', amount: 3200, days: null }
+      },
+      couponHours: 48,
+      appUrl: '/app.html',
+      test: true
+    };
+
+    const tokenStorageKey = 'costdesk_license_token';
+
+    // Confetti Animation Controller
+    function triggerConfetti() {
+      const canvas = document.getElementById('confettiCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      const particles = [];
+      const colors = ['#6366f1', '#10b981', '#06b6d4', '#f59e0b', '#ec4899', '#ffffff'];
+
+      for (let i = 0; i < 90; i++) {
+        particles.push({
+          x: canvas.width / 2,
+          y: canvas.height / 3,
+          r: Math.random() * 6 + 3,
+          dx: (Math.random() - 0.5) * 16,
+          dy: (Math.random() - 0.7) * 18,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          tilt: Math.random() * 10,
+          tiltAngle: 0,
+          tiltAngleInc: (Math.random() * 0.07) + 0.05
+        });
+      }
+
+      let animationFrame;
+      let frameCount = 0;
+
+      function render() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        frameCount++;
+
+        particles.forEach(p => {
+          p.x += p.dx;
+          p.y += p.dy;
+          p.dy += 0.4; // gravity
+          p.tiltAngle += p.tiltAngleInc;
+          p.tilt = Math.sin(p.tiltAngle) * 12;
+
+          ctx.beginPath();
+          ctx.lineWidth = p.r;
+          ctx.strokeStyle = p.color;
+          ctx.moveTo(p.x + p.tilt + p.r / 2, p.y);
+          ctx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r / 2);
+          ctx.stroke();
+        });
+
+        if (frameCount < 160) {
+          animationFrame = requestAnimationFrame(render);
+        } else {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+      }
+      render();
+    }
+
+    // Initialize Page
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Auto-uppercase coupon code input formatting
+      const couponInput = document.getElementById('couponInput');
+      couponInput.addEventListener('input', (e) => {
+        let v = e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, '');
+        e.target.value = v;
+        document.getElementById('couponError').style.display = 'none';
+      });
+
+      // Check query parameters
+      const urlParams = new URLSearchParams(window.location.search);
+      const codeFromUrl = urlParams.get('code');
+      if (codeFromUrl) {
+        couponInput.value = codeFromUrl.trim().toUpperCase();
+      }
+
+      // Fetch dynamic pricing & config
+      await fetchConfig();
+
+      // Check URL for Ziina return
+      const status = urlParams.get('status');
+      const pi = urlParams.get('pi');
+
+      if (status === 'success' && pi) {
+        verifyZiinaPayment(pi);
+      } else if (status === 'cancel') {
+        showBannerAlert('warning', 'Payment cancelled', 'You have not been charged. Select a plan below whenever you are ready.');
+      } else if (status === 'failed') {
+        showBannerAlert('danger', 'Payment failed', 'Your transaction was not completed. Please try again or use another card.');
+      } else if (urlParams.get('reason') === 'pass_expired') {
+        showBannerAlert('warning', 'Trial pass ended', 'Your 48-hour access pass has expired. Upgrade below to keep using Cost Desk without interruption.');
+      } else {
+        // Check existing local token
+        checkExistingLicense();
+      }
+    });
+
+    async function fetchConfig() {
+      try {
+        const res = await fetch('/api/config');
+        if (res.ok) {
+          config = await res.json();
+          // Update DOM prices
+          if (config.listPrice) {
+            document.getElementById('anchorPrice').textContent = `AED ${config.listPrice.toLocaleString()}`;
+          }
+          if (config.plans?.yearly) {
+            document.getElementById('priceYearly').textContent = config.plans.yearly.amount.toLocaleString();
+            document.getElementById('btnCheckoutYearly').innerHTML = `<span>Subscribe &mdash; AED ${config.plans.yearly.amount.toLocaleString()}</span>`;
+          }
+          if (config.plans?.lifetime) {
+            document.getElementById('priceLifetime').textContent = config.plans.lifetime.amount.toLocaleString();
+            document.getElementById('btnCheckoutLifetime').innerHTML = `<span>Purchase &mdash; AED ${config.plans.lifetime.amount.toLocaleString()}</span>`;
+          }
+          if (config.test) {
+            document.getElementById('testModeBadge').style.display = 'inline-flex';
+          }
+          if (config.appUrl) {
+            document.getElementById('btnGoToApp').href = config.appUrl;
+            document.getElementById('btnEnterAppModal').href = config.appUrl;
+          }
+        }
+      } catch (err) {
+        console.warn('Could not load /api/config; using defaults', err);
+      }
+    }
+
+    async function checkExistingLicense() {
+      const token = localStorage.getItem(tokenStorageKey);
+      if (!token) return;
+
+      try {
+        const res = await fetch(`/api/access?token=${encodeURIComponent(token)}`);
+        if (!res.ok) return;
+        const data = await res.json();
+
+        if (data.active) {
+          const banner = document.getElementById('bannerActiveLicense');
+          const text = document.getElementById('activeLicenseText');
+          const planTitle = data.planLabel || (data.plan === 'lifetime' ? 'Lifetime Access' : data.plan === 'yearly' ? 'Yearly Access' : 'Trial Pass');
+          const expiryStr = data.expiresAt ? ` (Valid until ${new Date(data.expiresAt).toLocaleDateString()})` : ' (Lifetime)';
+          text.innerHTML = `Active license detected: <strong>${planTitle}</strong>${expiryStr}`;
+          banner.classList.add('active');
+        } else {
+          localStorage.removeItem(tokenStorageKey);
+        }
+      } catch (e) {
+        // Offline or connection error
+      }
+    }
+
+    // Checkout initiator
+    async function startCheckout(planKey) {
+      const btn = planKey === 'yearly' ? document.getElementById('btnCheckoutYearly') : document.getElementById('btnCheckoutLifetime');
+      const originalHtml = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = `<span class="spinner"></span><span>Connecting to Ziina...</span>`;
+
+      try {
+        const res = await fetch('/api/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ plan: planKey })
+        });
+        const data = await res.json();
+
+        if (!res.ok || !data.redirectUrl) {
+          throw new Error(data.error || 'Unable to open checkout session');
+        }
+
+        // Redirect to Ziina hosted payment
+        window.location.href = data.redirectUrl;
+      } catch (err) {
+        alert(err.message || 'Payment initiation failed. Please ensure ZIINA_API_KEY is configured on the server.');
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+      }
+    }
+
+    // Server-side payment verification
+    async function verifyZiinaPayment(paymentIntentId) {
+      showBannerAlert('info', 'Verifying Payment', 'Please wait while we confirm your payment with Ziina...');
+
+      try {
+        const res = await fetch('/api/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pi: paymentIntentId })
+        });
+        const data = await res.json();
+
+        if (!res.ok || !data.token) {
+          showBannerAlert('danger', 'Verification Failed', data.error || 'Payment confirmation failed');
+          return;
+        }
+
+        // Save token locally
+        localStorage.setItem(tokenStorageKey, data.token);
+
+        // Hide alert banner
+        document.getElementById('bannerPaymentAlert').classList.remove('active');
+
+        // Show celebrations and modal
+        triggerConfetti();
+        openSuccessModal(
+          'Payment Successful! 🎉',
+          'Thank you for your purchase. Your Cost Desk license is now active.',
+          data.planLabel || data.plan,
+          data.expiresAt ? new Date(data.expiresAt).toLocaleDateString() : 'Permanent Lifetime'
+        );
+      } catch (err) {
+        showBannerAlert('danger', 'Verification Error', err.message || 'Could not verify payment');
+      }
+    }
+
+    // Coupon redemption
+    async function redeemCoupon() {
+      const input = document.getElementById('couponInput');
+      const errBox = document.getElementById('couponError');
+      const btn = document.getElementById('btnRedeemCoupon');
+      const code = input.value.trim().toUpperCase();
+
+      if (!code) {
+        errBox.textContent = 'Please enter a coupon code.';
+        errBox.style.display = 'block';
+        input.focus();
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = `<span class="spinner" style="width:14px;height:14px;"></span><span>Checking...</span>`;
+      errBox.style.display = 'none';
+
+      try {
+        const res = await fetch('/api/coupon/redeem', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code })
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          errBox.textContent = data.error || 'Invalid or expired code.';
+          errBox.style.display = 'block';
+          btn.disabled = false;
+          btn.innerHTML = '<span>Activate Pass</span>';
+          return;
+        }
+
+        // Save token
+        localStorage.setItem(tokenStorageKey, data.token);
+
+        // Calculate hours
+        const expDate = new Date(data.expiresAt);
+        triggerConfetti();
+        openSuccessModal(
+          'Pass Activated! ⚡',
+          'Your 48-Hour Full Access pass is now activated. Explore every feature in Cost Desk.',
+          '48-Hour Promotional Pass',
+          `Expires: ${expDate.toLocaleDateString()} at ${expDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+        );
+      } catch (err) {
+        errBox.textContent = 'Network error. Please try again.';
+        errBox.style.display = 'block';
+        btn.disabled = false;
+        btn.innerHTML = '<span>Activate Pass</span>';
+      }
+    }
+
+    function openSuccessModal(title, desc, planName, expiry) {
+      document.getElementById('modalTitle').textContent = title;
+      document.getElementById('modalDesc').textContent = desc;
+      document.getElementById('modalPlanName').textContent = planName;
+      document.getElementById('modalExpiresAt').textContent = expiry;
+      document.getElementById('successModal').classList.add('active');
+    }
+
+    function showBannerAlert(type, title, desc) {
+      const banner = document.getElementById('bannerPaymentAlert');
+      const icon = document.getElementById('paymentAlertIcon');
+      const text = document.getElementById('paymentAlertText');
+
+      banner.className = `banner banner-${type} active`;
+
+      let iconSvg = '';
+      if (type === 'warning') {
+        iconSvg = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`;
+      } else if (type === 'danger') {
+        iconSvg = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`;
+      } else {
+        iconSvg = `<div class="spinner" style="width:16px;height:16px;border-width:2px;"></div>`;
+      }
+
+      icon.innerHTML = iconSvg;
+      text.innerHTML = `<strong>${title}:</strong> ${desc}`;
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cost Desk — Professional Tailoring & Garment Costing</title>
+  
+  <!-- Gatekeeper: validates license and locks session when expired -->
+  <script src="/gate.js"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --bg: #07090e;
+      --card-bg: rgba(15, 23, 42, 0.75);
+      --card-border: rgba(255, 255, 255, 0.09);
+      --primary: #6366f1;
+      --emerald: #10b981;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --font: 'Plus Jakarta Sans', -apple-system, sans-serif;
+      --mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg);
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.12) 0%, transparent 40%),
+        radial-gradient(circle at 80% 30%, rgba(16, 185, 129, 0.08) 0%, transparent 40%);
+      color: var(--text);
+      font-family: var(--font);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 32px 24px 60px;
+      width: 100%;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 36px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--card-border);
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .brand-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #6366f1, #06b6d4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .brand-icon svg {
+      width: 20px;
+      height: 20px;
+      stroke: white;
+      stroke-width: 2.2;
+      fill: none;
+    }
+
+    .license-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      color: #34d399;
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+
+    .license-dot {
+      width: 7px;
+      height: 7px;
+      background: #34d399;
+      border-radius: 50%;
+    }
+
+    .btn-logout {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-logout:hover {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: rgba(239, 68, 68, 0.4);
+      color: #f87171;
+    }
+
+    /* Calculator Card */
+    .calc-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 18px;
+      padding: 32px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.6);
+      margin-bottom: 32px;
+    }
+
+    .calc-title {
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: white;
+      margin-bottom: 6px;
+    }
+
+    .calc-desc {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-bottom: 28px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .input-calc {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      color: white;
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 1rem;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .input-calc:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+    }
+
+    /* Results */
+    .summary-box {
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 20px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+    }
+
+    .metric-label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+    }
+
+    .metric-value {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: white;
+    }
+
+    .metric-suggested {
+      color: #34d399;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand-wrap">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        </div>
+        <div>
+          <h1 style="font-size: 1.25rem; font-weight: 800;">Cost Desk</h1>
+          <span style="font-size: 0.78rem; color: var(--text-muted);">Unlocked Workshop Workspace</span>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div class="license-pill">
+          <span class="license-dot"></span>
+          <span id="licenseStatusText">License Active</span>
+        </div>
+        <button class="btn-logout" onclick="window.CostDeskAccess?.logout()">Lock / Exit</button>
+      </div>
+    </header>
+
+    <!-- Tailoring Cost Engine Demo -->
+    <div class="calc-card">
+      <h2 class="calc-title">Garment &amp; Tailoring Cost Engine</h2>
+      <p class="calc-desc">Calculate true manufacturing costs, artisan tailor labor, fabric meters, and optimal retail markup.</p>
+
+      <div class="grid-2">
+        <div class="form-group">
+          <label>Garment Item</label>
+          <input type="text" class="input-calc" value="Bespoke 3-Piece Tuxedo / Suit" />
+        </div>
+        <div class="form-group">
+          <label>Fabric Cost (AED per meter)</label>
+          <input type="number" id="fabricPrice" class="input-calc" value="120" oninput="calculate()" />
+        </div>
+        <div class="form-group">
+          <label>Meters Required</label>
+          <input type="number" id="fabricMeters" class="input-calc" value="3.5" step="0.1" oninput="calculate()" />
+        </div>
+        <div class="form-group">
+          <label>Master Tailor Stitching Labor (AED)</label>
+          <input type="number" id="laborCost" class="input-calc" value="450" oninput="calculate()" />
+        </div>
+        <div class="form-group">
+          <label>Trims, Lining &amp; Buttons (AED)</label>
+          <input type="number" id="trimsCost" class="input-calc" value="110" oninput="calculate()" />
+        </div>
+        <div class="form-group">
+          <label>Target Profit Margin (%)</label>
+          <input type="number" id="marginPercent" class="input-calc" value="45" oninput="calculate()" />
+        </div>
+      </div>
+
+      <div class="summary-box">
+        <div>
+          <div class="metric-label">Direct Cost</div>
+          <div class="metric-value" id="valTotalCost">AED 980</div>
+        </div>
+        <div>
+          <div class="metric-label">Target Profit</div>
+          <div class="metric-value" style="color: #818cf8;" id="valProfit">AED 441</div>
+        </div>
+        <div>
+          <div class="metric-label">Suggested Retail Price</div>
+          <div class="metric-value metric-suggested" id="valRetail">AED 1,421</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Listen for license data from gate.js
+    window.addEventListener('costdesk:license-valid', (e) => {
+      const { planLabel, plan, expiresAt } = e.detail;
+      const statusEl = document.getElementById('licenseStatusText');
+      if (expiresAt) {
+        const remainingHours = Math.max(0, Math.round((expiresAt - Date.now()) / 3600e3));
+        statusEl.textContent = `${planLabel || 'Coupon Pass'} (${remainingHours}h remaining)`;
+      } else {
+        statusEl.textContent = `${planLabel || 'Lifetime Access'} (Active)`;
+      }
+    });
+
+    function calculate() {
+      const fabric = (parseFloat(document.getElementById('fabricPrice').value) || 0) * (parseFloat(document.getElementById('fabricMeters').value) || 0);
+      const labor = parseFloat(document.getElementById('laborCost').value) || 0;
+      const trims = parseFloat(document.getElementById('trimsCost').value) || 0;
+      const margin = parseFloat(document.getElementById('marginPercent').value) || 0;
+
+      const totalCost = fabric + labor + trims;
+      const profit = totalCost * (margin / 100);
+      const retail = totalCost + profit;
+
+      document.getElementById('valTotalCost').textContent = `AED ${Math.round(totalCost).toLocaleString()}`;
+      document.getElementById('valProfit').textContent = `AED ${Math.round(profit).toLocaleString()}`;
+      document.getElementById('valRetail').textContent = `AED ${Math.round(retail).toLocaleString()}`;
+    }
+
+    calculate();
+  </script>
+</body>
+</html>

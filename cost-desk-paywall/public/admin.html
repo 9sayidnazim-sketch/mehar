@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cost Desk — Coupon Admin Console</title>
+  <meta name="description" content="Generate and manage 48-hour access coupons for Cost Desk" />
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --bg: #07090e;
+      --card-bg: rgba(15, 23, 42, 0.75);
+      --card-border: rgba(255, 255, 255, 0.09);
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --emerald: #10b981;
+      --amber: #f59e0b;
+      --danger: #ef4444;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --font: 'Plus Jakarta Sans', -apple-system, sans-serif;
+      --mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg);
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.12) 0%, transparent 45%),
+        radial-gradient(circle at 90% 20%, rgba(16, 185, 129, 0.08) 0%, transparent 40%);
+      color: var(--text);
+      font-family: var(--font);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.5;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px 24px 60px;
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 36px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--card-border);
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .brand-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #6366f1, #06b6d4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .brand-icon svg {
+      width: 20px;
+      height: 20px;
+      stroke: white;
+      stroke-width: 2.2;
+      fill: none;
+    }
+
+    .brand-title {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: white;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-badge {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: rgba(99, 102, 241, 0.2);
+      border: 1px solid rgba(99, 102, 241, 0.4);
+      color: #a5b4fc;
+      margin-left: 8px;
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn-nav {
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+      border: 1px solid var(--card-border);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-muted);
+    }
+
+    .btn-nav:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+    }
+
+    /* Auth Modal */
+    #authOverlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(7, 9, 14, 0.92);
+      backdrop-filter: blur(16px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      z-index: 2000;
+    }
+
+    .auth-card {
+      background: #0f172a;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 20px;
+      padding: 36px;
+      width: 100%;
+      max-width: 420px;
+      text-align: center;
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8);
+    }
+
+    .auth-lock-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 18px;
+      color: #818cf8;
+    }
+
+    .input-field {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      color: white;
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      outline: none;
+      transition: all 0.2s;
+      margin-bottom: 16px;
+    }
+
+    .input-field:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+    }
+
+    .btn-primary {
+      width: 100%;
+      padding: 14px 20px;
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      border: none;
+      border-radius: 10px;
+      color: white;
+      font-weight: 700;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: linear-gradient(135deg, #4f46e5, #4338ca);
+      transform: translateY(-1px);
+    }
+
+    /* KPI Stats */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+      margin-bottom: 32px;
+    }
+
+    .kpi-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 24px;
+      backdrop-filter: blur(12px);
+    }
+
+    .kpi-title {
+      font-size: 0.82rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+    }
+
+    .kpi-value {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: white;
+      line-height: 1;
+    }
+
+    .kpi-subtext {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-top: 8px;
+    }
+
+    /* Generator Box */
+    .section-box {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 28px;
+      backdrop-filter: blur(12px);
+      margin-bottom: 36px;
+    }
+
+    .section-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: white;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .section-desc {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+
+    .gen-form {
+      display: grid;
+      grid-template-columns: 120px 1fr auto;
+      gap: 16px;
+      align-items: end;
+    }
+
+    @media (max-width: 640px) {
+      .gen-form {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    /* Table & Controls */
+    .table-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .filter-pills {
+      display: flex;
+      gap: 8px;
+    }
+
+    .pill-filter {
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      border: 1px solid var(--card-border);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .pill-filter.active {
+      background: rgba(99, 102, 241, 0.25);
+      border-color: rgba(99, 102, 241, 0.5);
+      color: white;
+    }
+
+    .table-container {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      overflow-x: auto;
+      backdrop-filter: blur(12px);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.9rem;
+    }
+
+    th {
+      background: rgba(255, 255, 255, 0.03);
+      padding: 14px 18px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-dim);
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    td {
+      padding: 14px 18px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      color: #cbd5e1;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255, 255, 255, 0.02); }
+
+    .code-cell {
+      font-family: var(--mono);
+      font-weight: 600;
+      color: white;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-copy-code {
+      background: rgba(255, 255, 255, 0.08);
+      border: none;
+      border-radius: 6px;
+      padding: 4px 8px;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 0.75rem;
+      transition: all 0.15s;
+    }
+
+    .btn-copy-code:hover {
+      background: rgba(255, 255, 255, 0.18);
+      color: white;
+    }
+
+    /* Badges */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .badge-unused {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #34d399;
+    }
+
+    .badge-active {
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      color: #fbbf24;
+    }
+
+    .badge-active-dot {
+      width: 6px;
+      height: 6px;
+      background: #fbbf24;
+      border-radius: 50%;
+      animation: pulse 1.5s infinite;
+    }
+
+    .badge-expired {
+      background: rgba(148, 163, 184, 0.12);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      color: #94a3b8;
+    }
+
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+    /* Modal for New Batch Generated */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      z-index: 3000;
+    }
+    .modal-overlay.active { display: flex; }
+
+    .modal-box {
+      background: #0f172a;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 18px;
+      max-width: 520px;
+      width: 100%;
+      padding: 32px;
+    }
+
+    .codes-textarea {
+      width: 100%;
+      height: 180px;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 10px;
+      color: #38bdf8;
+      font-family: var(--mono);
+      font-size: 0.9rem;
+      padding: 12px;
+      outline: none;
+      margin: 16px 0;
+      resize: vertical;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Password Gate Modal -->
+  <div id="authOverlay">
+    <div class="auth-card">
+      <div class="auth-lock-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </div>
+      <h2 style="font-size: 1.4rem; font-weight: 800; margin-bottom: 8px;">Admin Console</h2>
+      <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 24px;">Enter the ADMIN_KEY configured in your .env file to manage coupon passes.</p>
+      
+      <form onsubmit="handleAuthSubmit(event)">
+        <input type="password" id="adminKeyInput" class="input-field" placeholder="Admin Secret Key" required />
+        <div id="authError" style="color: #f87171; font-size: 0.82rem; margin-bottom: 12px; display: none;"></div>
+        <button type="submit" class="btn-primary" id="btnUnlock">
+          <span>Unlock Dashboard</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div class="container">
+    <header>
+      <div class="brand-wrap">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        </div>
+        <div>
+          <span class="brand-title">Cost Desk</span>
+          <span class="brand-badge">Coupon Admin</span>
+        </div>
+      </div>
+
+      <div class="nav-actions">
+        <a href="/paywall.html" class="btn-nav" target="_blank">
+          <span>View Paywall</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        </a>
+        <button onclick="handleLogout()" class="btn-nav">Lock Console</button>
+      </div>
+    </header>
+
+    <!-- KPI Summary Cards -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-title">Total Generated</div>
+        <div class="kpi-value" id="kpiTotal">0</div>
+        <div class="kpi-subtext">All time promotional passes</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-title">Unused Passes</div>
+        <div class="kpi-value" id="kpiUnused" style="color: #34d399;">0</div>
+        <div class="kpi-subtext">Ready to distribute to clients</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-title">Active Passes</div>
+        <div class="kpi-value" id="kpiActive" style="color: #fbbf24;">0</div>
+        <div class="kpi-subtext">Currently inside 48-hour window</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-title">Expired Passes</div>
+        <div class="kpi-value" id="kpiExpired" style="color: var(--text-dim);">0</div>
+        <div class="kpi-subtext">Trial concluded</div>
+      </div>
+    </div>
+
+    <!-- Generator Section -->
+    <div class="section-box">
+      <div class="section-title">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2.2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+        <span>Generate 48-Hour Promotional Coupons</span>
+      </div>
+      <p class="section-desc">Generate single-use codes that unlock Cost Desk for exactly 48 hours from client activation.</p>
+
+      <form class="gen-form" onsubmit="handleGenerateSubmit(event)">
+        <div class="form-group">
+          <label>Quantity</label>
+          <input type="number" id="genCount" class="input-field" value="10" min="1" max="100" required />
+        </div>
+        <div class="form-group">
+          <label>Campaign / Client Note (Optional)</label>
+          <input type="text" id="genNote" class="input-field" placeholder="e.g. VIP Tailor Trial, Expo Lead, Partner" />
+        </div>
+        <button type="submit" class="btn-primary" id="btnGenerate" style="height: 46px; margin-bottom: 16px;">
+          <span>Generate Coupons</span>
+        </button>
+      </form>
+    </div>
+
+    <!-- Coupon List Table -->
+    <div class="table-controls">
+      <div class="filter-pills">
+        <button class="pill-filter active" onclick="setFilter('all', this)">All Coupons (<span id="countAll">0</span>)</button>
+        <button class="pill-filter" onclick="setFilter('unused', this)">Unused (<span id="countUnused">0</span>)</button>
+        <button class="pill-filter" onclick="setFilter('active', this)">Active (<span id="countActive">0</span>)</button>
+        <button class="pill-filter" onclick="setFilter('expired', this)">Expired (<span id="countExpired">0</span>)</button>
+      </div>
+
+      <div style="max-width: 280px; width: 100%;">
+        <input type="text" id="searchInput" class="input-field" style="margin-bottom: 0;" placeholder="Search codes or notes..." oninput="handleSearch(this.value)" />
+      </div>
+    </div>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Coupon Code</th>
+            <th>Status</th>
+            <th>Note / Campaign</th>
+            <th>Created</th>
+            <th>Activated</th>
+            <th>Expires / Time Remaining</th>
+            <th style="text-align: right;">Action</th>
+          </tr>
+        </thead>
+        <tbody id="couponTableBody">
+          <tr>
+            <td colspan="7" style="text-align: center; padding: 40px; color: var(--text-dim);">
+              Loading coupons...
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Batch Generated Modal -->
+  <div id="batchModal" class="modal-overlay">
+    <div class="modal-box">
+      <h3 style="font-size: 1.3rem; font-weight: 800; margin-bottom: 6px;">Coupons Generated!</h3>
+      <p style="font-size: 0.88rem; color: var(--text-muted);">The following codes are ready to share with prospective clients:</p>
+      
+      <textarea id="batchTextarea" class="codes-textarea" readonly></textarea>
+
+      <div style="display: flex; gap: 10px;">
+        <button class="btn-primary" onclick="copyBatchText()">
+          <span>Copy All Codes</span>
+        </button>
+        <button class="btn-nav" style="background: rgba(255,255,255,0.1); color: white;" onclick="copyBatchLinks()">
+          <span>Copy Share Links</span>
+        </button>
+        <button class="btn-nav" onclick="closeBatchModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let couponsData = [];
+    let currentFilter = 'all';
+    let searchQuery = '';
+    const ADMIN_KEY_STORAGE = 'costdesk_admin_key';
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const storedKey = sessionStorage.getItem(ADMIN_KEY_STORAGE) || localStorage.getItem(ADMIN_KEY_STORAGE);
+      if (storedKey) {
+        testAndLoadCoupons(storedKey);
+      }
+    });
+
+    async function handleAuthSubmit(e) {
+      e.preventDefault();
+      const key = document.getElementById('adminKeyInput').value.trim();
+      const btn = document.getElementById('btnUnlock');
+      const errBox = document.getElementById('authError');
+
+      btn.disabled = true;
+      btn.innerHTML = `<span class="spinner"></span><span>Verifying...</span>`;
+      errBox.style.display = 'none';
+
+      const success = await testAndLoadCoupons(key);
+      if (!success) {
+        errBox.textContent = 'Invalid Admin Key. Please check the ADMIN_KEY in your .env file.';
+        errBox.style.display = 'block';
+        btn.disabled = false;
+        btn.innerHTML = `<span>Unlock Dashboard</span>`;
+      }
+    }
+
+    async function testAndLoadCoupons(key) {
+      try {
+        const res = await fetch('/api/admin/coupons', {
+          headers: { 'x-admin-key': key }
+        });
+
+        if (res.status === 401) {
+          sessionStorage.removeItem(ADMIN_KEY_STORAGE);
+          return false;
+        }
+
+        const data = await res.json();
+        sessionStorage.setItem(ADMIN_KEY_STORAGE, key);
+        document.getElementById('authOverlay').style.display = 'none';
+
+        couponsData = data.coupons || [];
+        updateStats(data.stats);
+        renderTable();
+        return true;
+      } catch (err) {
+        console.error('Failed to fetch admin coupons', err);
+        return false;
+      }
+    }
+
+    function handleLogout() {
+      sessionStorage.removeItem(ADMIN_KEY_STORAGE);
+      localStorage.removeItem(ADMIN_KEY_STORAGE);
+      location.reload();
+    }
+
+    function updateStats(stats) {
+      const total = stats ? stats.total : couponsData.length;
+      const unused = stats ? stats.unused : couponsData.filter(x => x.status === 'unused').length;
+      const active = stats ? stats.active : couponsData.filter(x => x.status === 'active').length;
+      const expired = stats ? stats.expired : couponsData.filter(x => x.status === 'expired').length;
+
+      document.getElementById('kpiTotal').textContent = total;
+      document.getElementById('kpiUnused').textContent = unused;
+      document.getElementById('kpiActive').textContent = active;
+      document.getElementById('kpiExpired').textContent = expired;
+
+      document.getElementById('countAll').textContent = total;
+      document.getElementById('countUnused').textContent = unused;
+      document.getElementById('countActive').textContent = active;
+      document.getElementById('countExpired').textContent = expired;
+    }
+
+    async function handleGenerateSubmit(e) {
+      e.preventDefault();
+      const count = parseInt(document.getElementById('genCount').value, 10) || 10;
+      const note = document.getElementById('genNote').value.trim();
+      const key = sessionStorage.getItem(ADMIN_KEY_STORAGE);
+      const btn = document.getElementById('btnGenerate');
+
+      btn.disabled = true;
+      btn.innerHTML = `<span class="spinner"></span><span>Generating...</span>`;
+
+      try {
+        const res = await fetch('/api/admin/coupons', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-admin-key': key
+          },
+          body: JSON.stringify({ count, note })
+        });
+        const data = await res.json();
+
+        if (res.ok && data.codes) {
+          // Open batch modal
+          document.getElementById('batchTextarea').value = data.codes.join('\n');
+          document.getElementById('batchModal').classList.add('active');
+          document.getElementById('genNote').value = '';
+          // Reload
+          await testAndLoadCoupons(key);
+        } else {
+          alert(data.error || 'Failed generating coupons');
+        }
+      } catch (err) {
+        alert('Network error while generating codes');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<span>Generate Coupons</span>`;
+      }
+    }
+
+    function setFilter(filter, el) {
+      currentFilter = filter;
+      document.querySelectorAll('.pill-filter').forEach(btn => btn.classList.remove('active'));
+      el.classList.add('active');
+      renderTable();
+    }
+
+    function handleSearch(val) {
+      searchQuery = val.trim().toLowerCase();
+      renderTable();
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('couponTableBody');
+      const filtered = couponsData.filter(c => {
+        if (currentFilter !== 'all' && c.status !== currentFilter) return false;
+        if (searchQuery) {
+          return c.code.toLowerCase().includes(searchQuery) || (c.note && c.note.toLowerCase().includes(searchQuery));
+        }
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 48px; color: var(--text-dim);">No matching coupons found.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(c => {
+        let badgeHtml = '';
+        if (c.status === 'unused') {
+          badgeHtml = `<span class="status-badge badge-unused">Ready to Share</span>`;
+        } else if (c.status === 'active') {
+          const hoursRem = Math.max(0, Math.round(c.remainingMs / 3600e3));
+          badgeHtml = `<span class="status-badge badge-active"><span class="badge-active-dot"></span>${hoursRem}h remaining</span>`;
+        } else {
+          badgeHtml = `<span class="status-badge badge-expired">Expired</span>`;
+        }
+
+        const createdStr = new Date(c.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+        const activatedStr = c.activatedAt ? new Date(c.activatedAt).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '&mdash;';
+        const expiresStr = c.expiresAt ? new Date(c.expiresAt).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '&mdash;';
+
+        const shareUrl = `${window.location.origin}/paywall.html?code=${encodeURIComponent(c.code)}`;
+
+        return `
+          <tr>
+            <td>
+              <div class="code-cell">
+                <span>${c.code}</span>
+                <button class="btn-copy-code" onclick="copyText('${c.code}', this)">Copy</button>
+              </div>
+            </td>
+            <td>${badgeHtml}</td>
+            <td><span style="color: #94a3b8; font-size: 0.85rem;">${c.note || '&mdash;'}</span></td>
+            <td><span style="font-size: 0.82rem; color: var(--text-dim);">${createdStr}</span></td>
+            <td><span style="font-size: 0.82rem; color: var(--text-dim);">${activatedStr}</span></td>
+            <td><span style="font-size: 0.82rem; color: var(--text-dim);">${expiresStr}</span></td>
+            <td style="text-align: right;">
+              <button class="btn-nav" style="padding: 4px 10px; font-size: 0.78rem;" onclick="copyText('${shareUrl}', this)">
+                Copy Link
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function copyText(text, btn) {
+      navigator.clipboard.writeText(text);
+      const originalText = btn.textContent;
+      btn.textContent = 'Copied!';
+      btn.style.color = '#34d399';
+      setTimeout(() => {
+        btn.textContent = originalText;
+        btn.style.color = '';
+      }, 1500);
+    }
+
+    function copyBatchText() {
+      const textarea = document.getElementById('batchTextarea');
+      navigator.clipboard.writeText(textarea.value);
+      alert('All coupon codes copied to clipboard!');
+    }
+
+    function copyBatchLinks() {
+      const codes = document.getElementById('batchTextarea').value.split('\n').filter(Boolean);
+      const links = codes.map(c => `${window.location.origin}/paywall.html?code=${c}`).join('\n');
+      navigator.clipboard.writeText(links);
+      alert('All direct share links copied to clipboard!');
+    }
+
+    function closeBatchModal() {
+      document.getElementById('batchModal').classList.remove('active');
+    }
+  </script>
+</body>
+</html>

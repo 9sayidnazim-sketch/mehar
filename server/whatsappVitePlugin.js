@@ -8,6 +8,15 @@ import {
   syncInvoiceToDb,
   getInvoiceSendRecords
 } from './whatsappBackend.js';
+import {
+  getPaywallConfig,
+  handleCheckout,
+  handleVerify,
+  handleCouponRedeem,
+  getLicenseStatus,
+  handleAdminCreateCoupons,
+  handleAdminListCoupons
+} from './paywallBackend.js';
 
 function readJsonBody(req) {
   return new Promise((resolve, reject) => {
@@ -45,6 +54,75 @@ export function whatsappVitePlugin(env = {}) {
   return {
     name: 'thredo-whatsapp-api',
     configureServer(server) {
+      // Paywall: GET /api/config
+      server.middlewares.use('/api/config', (req, res, next) => {
+        if (req.method !== 'GET') return next();
+        return sendJson(res, 200, getPaywallConfig(req.headers.host));
+      });
+
+      // Paywall: POST /api/checkout
+      server.middlewares.use('/api/checkout', async (req, res, next) => {
+        if (req.method !== 'POST') return next();
+        try {
+          const body = await readJsonBody(req);
+          const result = await handleCheckout(body, req.headers.host);
+          return sendJson(res, result.status, result.body);
+        } catch (err) {
+          return sendJson(res, 500, { error: err.message });
+        }
+      });
+
+      // Paywall: POST /api/verify
+      server.middlewares.use('/api/verify', async (req, res, next) => {
+        if (req.method !== 'POST') return next();
+        try {
+          const body = await readJsonBody(req);
+          const result = await handleVerify(body);
+          return sendJson(res, result.status, result.body);
+        } catch (err) {
+          return sendJson(res, 500, { error: err.message });
+        }
+      });
+
+      // Paywall: POST /api/coupon/redeem
+      server.middlewares.use('/api/coupon/redeem', async (req, res, next) => {
+        if (req.method !== 'POST') return next();
+        try {
+          const body = await readJsonBody(req);
+          const result = handleCouponRedeem(body);
+          return sendJson(res, result.status, result.body);
+        } catch (err) {
+          return sendJson(res, 500, { error: err.message });
+        }
+      });
+
+      // Paywall: GET /api/access
+      server.middlewares.use('/api/access', (req, res, next) => {
+        if (req.method !== 'GET') return next();
+        const url = new URL(req.url, 'http://localhost');
+        const tokenStr = url.searchParams.get('token') || '';
+        return sendJson(res, 200, getLicenseStatus(tokenStr));
+      });
+
+      // Paywall: /api/admin/coupons
+      server.middlewares.use('/api/admin/coupons', async (req, res, next) => {
+        const adminKey = req.headers['x-admin-key'] || req.headers['admin-key'] || '';
+        if (req.method === 'POST') {
+          try {
+            const body = await readJsonBody(req);
+            const result = handleAdminCreateCoupons(body, adminKey);
+            return sendJson(res, result.status, result.body);
+          } catch (err) {
+            return sendJson(res, 500, { error: err.message });
+          }
+        }
+        if (req.method === 'GET') {
+          const result = handleAdminListCoupons(adminKey);
+          return sendJson(res, result.status, result.body);
+        }
+        return next();
+      });
+
       // 1. Instance Status Check: GET /api/invoices/whatsapp-status
       server.middlewares.use('/api/invoices/whatsapp-status', async (req, res, next) => {
         if (req.method !== 'GET') return next();

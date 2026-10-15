@@ -13,6 +13,15 @@ import {
   getInvoiceSendRecords,
   syncInvoiceToDb
 } from './whatsappBackend.js';
+import {
+  getPaywallConfig,
+  handleCheckout,
+  handleVerify,
+  handleCouponRedeem,
+  getLicenseStatus,
+  handleAdminCreateCoupons,
+  handleAdminListCoupons
+} from './paywallBackend.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -86,6 +95,68 @@ const server = http.createServer(async (req, res) => {
   // Health check endpoint for AWS ALB / App Runner / ECS
   if (pathname === '/health' || pathname === '/api/health') {
     return sendJson(res, 200, { status: 'healthy', timestamp: new Date().toISOString() });
+  }
+
+  // Paywall API Route: GET /api/config
+  if (pathname === '/api/config' && req.method === 'GET') {
+    return sendJson(res, 200, getPaywallConfig(req.headers.host));
+  }
+
+  // Paywall API Route: POST /api/checkout
+  if (pathname === '/api/checkout' && req.method === 'POST') {
+    try {
+      const body = await readJsonBody(req);
+      const result = await handleCheckout(body, req.headers.host);
+      return sendJson(res, result.status, result.body);
+    } catch (err) {
+      return sendJson(res, 500, { error: err.message });
+    }
+  }
+
+  // Paywall API Route: POST /api/verify
+  if (pathname === '/api/verify' && req.method === 'POST') {
+    try {
+      const body = await readJsonBody(req);
+      const result = await handleVerify(body);
+      return sendJson(res, result.status, result.body);
+    } catch (err) {
+      return sendJson(res, 500, { error: err.message });
+    }
+  }
+
+  // Paywall API Route: POST /api/coupon/redeem
+  if (pathname === '/api/coupon/redeem' && req.method === 'POST') {
+    try {
+      const body = await readJsonBody(req);
+      const result = handleCouponRedeem(body);
+      return sendJson(res, result.status, result.body);
+    } catch (err) {
+      return sendJson(res, 500, { error: err.message });
+    }
+  }
+
+  // Paywall API Route: GET /api/access
+  if (pathname === '/api/access' && req.method === 'GET') {
+    const tokenStr = reqUrl.searchParams.get('token') || '';
+    return sendJson(res, 200, getLicenseStatus(tokenStr));
+  }
+
+  // Paywall API Route: /api/admin/coupons
+  if (pathname === '/api/admin/coupons') {
+    const adminKey = req.headers['x-admin-key'] || req.headers['admin-key'] || '';
+    if (req.method === 'POST') {
+      try {
+        const body = await readJsonBody(req);
+        const result = handleAdminCreateCoupons(body, adminKey);
+        return sendJson(res, result.status, result.body);
+      } catch (err) {
+        return sendJson(res, 500, { error: err.message });
+      }
+    }
+    if (req.method === 'GET') {
+      const result = handleAdminListCoupons(adminKey);
+      return sendJson(res, result.status, result.body);
+    }
   }
 
   // API Route: GET /api/invoices/whatsapp-status

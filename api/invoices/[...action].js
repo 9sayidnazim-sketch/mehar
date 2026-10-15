@@ -1,4 +1,3 @@
-// Universal Vercel Serverless Function Handler for THREDO
 import {
   checkOrbitInstanceStatus,
   handleSendInvoiceRequest,
@@ -7,6 +6,15 @@ import {
   getInvoiceSendRecords,
   syncInvoiceToDb
 } from '../../server/whatsappBackend.js';
+import {
+  getPaywallConfig,
+  handleCheckout,
+  handleVerify,
+  handleCouponRedeem,
+  getLicenseStatus,
+  handleAdminCreateCoupons,
+  handleAdminListCoupons
+} from '../../server/paywallBackend.js';
 
 function readJsonBody(req) {
   return new Promise((resolve, reject) => {
@@ -55,18 +63,82 @@ export default async function handler(req, res) {
   const host = req.headers.host || 'localhost';
   const reqUrl = new URL(req.url, `https://${host}`);
   
-  // Resolve path from query action, pathname, or x-matched-path
-  const actionParam = req.query?.action;
-  const action = Array.isArray(actionParam) ? actionParam.join('/') : (actionParam || '');
-  const pathname = reqUrl.pathname;
-  const matchedPath = req.headers['x-matched-path'] || '';
+  // Resolve path from query action, path, url pathname, or headers
+  const queryParam = req.query?.action || req.query?.path || req.query?.match || '';
+  const queryString = Array.isArray(queryParam) ? queryParam.join('/') : String(queryParam);
+  const matchedPath = String(req.headers['x-matched-path'] || req.headers['x-now-route-matches'] || '');
+  const rawPath = `${queryString} ${reqUrl.pathname} ${matchedPath}`.toLowerCase();
 
-  const isStatus = action === 'whatsapp-status' || pathname.endsWith('/whatsapp-status') || matchedPath.endsWith('/whatsapp-status');
-  const isHistory = action === 'whatsapp-history' || pathname.endsWith('/whatsapp-history') || matchedPath.endsWith('/whatsapp-history');
-  const isSend = action === 'send-whatsapp' || pathname.endsWith('/send-whatsapp') || matchedPath.endsWith('/send-whatsapp');
-  const isWebhook = action === 'webhook' || pathname.endsWith('/webhook') || matchedPath.endsWith('/webhook');
-  const isSync = action === 'sync' || pathname.endsWith('/sync') || matchedPath.endsWith('/sync');
-  const isHealth = action === 'health' || pathname.endsWith('/health') || matchedPath.endsWith('/health');
+  const isHealth = rawPath.includes('health');
+  const isStatus = rawPath.includes('whatsapp-status');
+  const isHistory = rawPath.includes('whatsapp-history');
+  const isSend = rawPath.includes('send-whatsapp');
+  const isWebhook = rawPath.includes('webhook');
+  const isSync = rawPath.includes('sync');
+
+  // Paywall endpoints
+  const isConfig = rawPath.includes('config');
+  const isCheckout = rawPath.includes('checkout');
+  const isVerify = rawPath.includes('verify');
+  const isCouponRedeem = rawPath.includes('coupon/redeem') || rawPath.includes('redeem');
+  const isAccess = rawPath.includes('access');
+  const isAdminCoupons = rawPath.includes('admin/coupons') || rawPath.includes('coupons');
+
+  if (isConfig && req.method === 'GET') {
+    return sendJson(res, 200, getPaywallConfig(host));
+  }
+
+  if (isCheckout && req.method === 'POST') {
+    try {
+      const body = await readJsonBody(req);
+      const result = await handleCheckout(body, host);
+      return sendJson(res, result.status, result.body);
+    } catch (err) {
+      return sendJson(res, 500, { error: err.message });
+    }
+  }
+
+  if (isVerify && req.method === 'POST') {
+    try {
+      const body = await readJsonBody(req);
+      const result = await handleVerify(body);
+      return sendJson(res, result.status, result.body);
+    } catch (err) {
+      return sendJson(res, 500, { error: err.message });
+    }
+  }
+
+  if (isCouponRedeem && req.method === 'POST') {
+    try {
+      const body = await readJsonBody(req);
+      const result = handleCouponRedeem(body);
+      return sendJson(res, result.status, result.body);
+    } catch (err) {
+      return sendJson(res, 500, { error: err.message });
+    }
+  }
+
+  if (isAccess && req.method === 'GET') {
+    const tokenStr = reqUrl.searchParams.get('token') || req.query?.token || '';
+    return sendJson(res, 200, getLicenseStatus(tokenStr));
+  }
+
+  if (isAdminCoupons) {
+    const adminKey = req.headers['x-admin-key'] || req.headers['admin-key'] || '';
+    if (req.method === 'POST') {
+      try {
+        const body = await readJsonBody(req);
+        const result = handleAdminCreateCoupons(body, adminKey);
+        return sendJson(res, result.status, result.body);
+      } catch (err) {
+        return sendJson(res, 500, { error: err.message });
+      }
+    }
+    if (req.method === 'GET') {
+      const result = handleAdminListCoupons(adminKey);
+      return sendJson(res, result.status, result.body);
+    }
+  }
 
   if (isHealth) {
     return sendJson(res, 200, { status: 'healthy', timestamp: new Date().toISOString(), platform: 'vercel' });
