@@ -90,10 +90,10 @@ export default async function handler(req, res) {
   const isAdminCoupons = rawPath.includes('admin/coupons') || rawPath.includes('coupons');
 
   // Ziina OAuth 2.0 / OIDC endpoints
-  const isZiinaAuth = rawPath.includes('ziina') && (rawPath.includes('auth') || rawPath.includes('authorize'));
   const isZiinaCallback = rawPath.includes('ziina') && rawPath.includes('callback');
   const isZiinaStatus = rawPath.includes('ziina') && rawPath.includes('status');
   const isZiinaDisconnect = rawPath.includes('ziina') && rawPath.includes('disconnect');
+  const isZiinaAuth = rawPath.includes('ziina') && (rawPath.includes('authorize') || rawPath.includes('/auth') || rawPath.endsWith(' auth'));
 
   // GET /api/ziina/oauth/authorize
   if (isZiinaAuth && req.method === 'GET') {

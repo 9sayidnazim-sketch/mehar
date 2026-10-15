@@ -399,9 +399,15 @@ export function handleAdminListCoupons(adminKeyHeader) {
 
 // ---- Ziina OAuth 2.0 / OIDC Handshake ------------------------------------
 
+function resolveBaseUrl(env, reqHost) {
+  if (env.publicUrl && !env.publicUrl.includes('localhost')) return env.publicUrl;
+  if (reqHost && !reqHost.includes('localhost')) return `https://${reqHost}`;
+  return env.publicUrl || (reqHost ? `https://${reqHost}` : 'http://localhost:3000');
+}
+
 export function getZiinaOAuthAuthorizeUrl(reqHost, overrideState, overrideRedirectUri) {
   const env = getPaywallEnv();
-  const basePublicUrl = env.publicUrl || (reqHost ? `https://${reqHost}` : 'http://localhost:3000');
+  const basePublicUrl = resolveBaseUrl(env, reqHost);
   const redirectUri = overrideRedirectUri || env.ziinaRedirectUri || `${basePublicUrl}/api/ziina/oauth/callback`;
   const state = overrideState || crypto.randomBytes(16).toString('hex');
   const clientId = env.ziinaClientId || 'test';
@@ -435,7 +441,7 @@ export function getZiinaOAuthAuthorizeUrl(reqHost, overrideState, overrideRedire
 
 export async function handleZiinaOAuthCallback(query, reqHost) {
   const env = getPaywallEnv();
-  const basePublicUrl = env.publicUrl || (reqHost ? `https://${reqHost}` : 'http://localhost:3000');
+  const basePublicUrl = resolveBaseUrl(env, reqHost);
 
   if (query?.error) {
     return {
@@ -552,7 +558,7 @@ export async function handleZiinaOAuthCallback(query, reqHost) {
 export function getZiinaOAuthStatus(reqHost) {
   const env = getPaywallEnv();
   const db = loadDb();
-  const basePublicUrl = env.publicUrl || (reqHost ? `https://${reqHost}` : 'http://localhost:3000');
+  const basePublicUrl = resolveBaseUrl(env, reqHost);
   const redirectUri = env.ziinaRedirectUri || `${basePublicUrl}/api/ziina/oauth/callback`;
   const oauth = db.oauth?.ziina;
   const isConnected = Boolean(oauth?.accessToken && (!oauth.expiresAt || oauth.expiresAt > now()));
