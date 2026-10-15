@@ -6,8 +6,8 @@ import { motion } from 'framer-motion';
 import StatusBadge from '@/components/StatusBadge';
 import { formatCurrency, formatDate } from '@/lib/mehar-utils';
 import {
-  ArrowLeft, Phone, Mail, MapPin, Calendar, ShoppingBag, Wallet,
-  Plus, MessageCircle, CreditCard, UserCog
+  ArrowLeft, Phone, Mail, MapPin, ShoppingBag, Wallet,
+  Plus, MessageCircle, CreditCard
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 

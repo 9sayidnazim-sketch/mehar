@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 
 import { formatCurrency } from '@/lib/mehar-utils';
-import { Plus, Scissors, Phone, Mail, TrendingUp, X } from 'lucide-react';
+import { Plus, Scissors, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';

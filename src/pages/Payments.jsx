@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 
 import { formatCurrency, formatDate } from '@/lib/mehar-utils';
 import { exportPaymentsPdf } from '@/lib/pdf-utils';
-import { CreditCard, Plus, Wallet, TrendingDown, Download, X } from 'lucide-react';
+import { CreditCard, Plus, Wallet, TrendingDown, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';

@@ -3,8 +3,8 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 
 import {
-  Building2, Ruler, CreditCard, Bell, Users, Palette, Plus, Trash2,
-  Save, GripVertical, Check, Globe, ShoppingBag, Edit, Package
+  Building2, Ruler, CreditCard, Palette, Plus, Trash2,
+  Save, Globe, ShoppingBag, Edit, Package
 } from 'lucide-react';
 import WebsiteOrdering from '@/components/settings/WebsiteOrdering';
 import { Button } from '@/components/ui/button';

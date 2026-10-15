@@ -4,10 +4,11 @@ import { queryClientInstance } from '@/lib/query-client'
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
-import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
 import AppLayout from '@/components/AppLayout';
-// Add page imports here
+import AccessGuard from '@/components/AccessGuard';
+
+// Pages
 import Dashboard from '@/pages/Dashboard';
 import Customers from '@/pages/Customers';
 import CustomerDetail from '@/pages/CustomerDetail';
@@ -21,44 +22,53 @@ import Settings from '@/pages/Settings';
 import OrderOnline from '@/pages/OrderOnline';
 import OnlineOrders from '@/pages/OnlineOrders';
 import Accounts from '@/pages/Accounts';
+import Paywall from '@/pages/Paywall';
+import Admin from '@/pages/Admin';
+import Login from '@/pages/Login';
+import Register from '@/pages/Register';
+import ForgotPassword from '@/pages/ForgotPassword';
+import ResetPassword from '@/pages/ResetPassword';
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
-
-  if (isLoadingPublicSettings || isLoadingAuth) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-slate-200 border-t-violet-600 rounded-full animate-spin"></div>
-      </div>
-    );
-  }
-
-  if (authError) {
-    if (authError.type === 'user_not_registered') {
-      return <UserNotRegisteredError />;
-    } else if (authError.type === 'auth_required') {
-      navigateToLogin();
-      return null;
-    }
-  }
-
   return (
     <Routes>
+      {/* Public storefront */}
       <Route path="/order-online" element={<OrderOnline />} />
+
+      {/* Public Authentication routes */}
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
+
+      {/* Authenticated Application Shell */}
       <Route element={<AppLayout />}>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/customers" element={<Customers />} />
-        <Route path="/customers/:id" element={<CustomerDetail />} />
-        <Route path="/orders" element={<Orders />} />
-        <Route path="/orders/new" element={<OrderCreate />} />
-        <Route path="/orders/:id" element={<OrderDetail />} />
-        <Route path="/tailors" element={<Tailors />} />
-        <Route path="/payments" element={<Payments />} />
-        <Route path="/sales" element={<Sales />} />
-        <Route path="/settings" element={<Settings />} />
-        <Route path="/online-orders" element={<OnlineOrders />} />
-        <Route path="/accounts" element={<Accounts />} />
+        {/* Paywall is accessible to any signed-in user */}
+        <Route path="/paywall" element={<Paywall />} />
+
+        {/* Server-gated Admin Console: non-admins receive 404 */}
+        <Route element={<AccessGuard requireAdmin={true} />}>
+          <Route path="/admin" element={<Admin />} />
+        </Route>
+
+        {/* Protected Business Management & POS Routes: require active subscription, coupon, or provisional access */}
+        <Route element={<AccessGuard />}>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/customers" element={<Customers />} />
+          <Route path="/customers/:id" element={<CustomerDetail />} />
+          <Route path="/orders" element={<Orders />} />
+          <Route path="/orders/new" element={<OrderCreate />} />
+          <Route path="/orders/:id" element={<OrderDetail />} />
+          <Route path="/tailors" element={<Tailors />} />
+          <Route path="/payments" element={<Payments />} />
+          <Route path="/sales" element={<Sales />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/online-orders" element={<OnlineOrders />} />
+          <Route path="/accounts" element={<Accounts />} />
+        </Route>
       </Route>
+
+      {/* 404 Catch-All */}
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
@@ -75,7 +85,7 @@ function App() {
         <Toaster />
       </QueryClientProvider>
     </AuthProvider>
-  )
+  );
 }
 
-export default App
+export default App;

@@ -7,8 +7,8 @@ import StatusBadge from '@/components/StatusBadge';
 import { formatCurrency, formatDate, daysUntil } from '@/lib/mehar-utils';
 import { downloadOrderBill } from '@/lib/pdf-utils';
 import {
-  ArrowLeft, Calendar, User, Ruler, Shirt, DollarSign, Truck,
-  MessageCircle, Mail, FileText, Printer, Check
+  ArrowLeft, User, Ruler, Shirt, DollarSign,
+  MessageCircle, Mail, Printer, Check
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';

@@ -32,7 +32,7 @@ export default function OrderOnline() {
         setLoading(false);
       }
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   const config = data?.config;

@@ -7,7 +7,7 @@ import StatusBadge from '@/components/StatusBadge';
 import { formatCurrency } from '@/lib/mehar-utils';
 import { exportCustomersPdf } from '@/lib/pdf-utils';
 import {
-  Plus, Search, Download, Phone, Mail, MapPin, Users, ChevronRight, X
+  Plus, Search, Download, Users, ChevronRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

@@ -1,17 +1,18 @@
-import { db } from '@/api/base44Client';
 import React, { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-
+import { useAuth } from '@/lib/AuthContext';
 import { useTheme } from '@/lib/theme';
 import {
   LayoutDashboard, Users, ClipboardList, Scissors, Settings as SettingsIcon,
-  Sun, Moon, LogOut, Menu, X, Ruler, Bell, Search, CreditCard, ShoppingBag,
-  Globe, BookOpen
+  Sun, Moon, LogOut, Menu, X, Ruler, Search, CreditCard, ShoppingBag,
+  Globe, BookOpen, ShieldCheck, ShieldAlert, Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import NotificationPopover from '@/components/NotificationPopover';
+import AccessBadge from '@/components/AccessBadge';
 
-const navItems = [
+const baseNavItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/customers', label: 'Customers', icon: Users },
   { to: '/orders', label: 'Orders', icon: ClipboardList },
@@ -20,28 +21,41 @@ const navItems = [
   { to: '/sales', label: 'Sales', icon: ShoppingBag },
   { to: '/online-orders', label: 'Online Orders', icon: Globe },
   { to: '/accounts', label: 'Accounts', icon: BookOpen },
+  { to: '/paywall', label: 'License & Paywall', icon: ShieldCheck, badge: 'PRO' },
   { to: '/settings', label: 'Settings', icon: SettingsIcon },
 ];
 
 function SidebarContent({ onNavigate }) {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
+
+  const navItems = isAdmin
+    ? [
+        ...baseNavItems.slice(0, -1),
+        { to: '/admin', label: 'Admin Console', icon: ShieldAlert, badge: 'ADMIN' },
+        baseNavItems[baseNavItems.length - 1]
+      ]
+    : baseNavItems;
+
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col bg-white dark:bg-slate-900 text-foreground select-none">
       {/* Brand Header */}
-      <div className="flex items-center gap-3 px-5 py-5 border-b border-sidebar-border/60">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 via-indigo-600 to-purple-700 text-white shadow-md shadow-violet-500/25">
-          <Ruler className="h-5 w-5" />
+      <div className="flex items-center gap-3 px-5 py-4.5 border-b border-border/70 bg-white dark:bg-slate-900 pr-12">
+        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 via-indigo-600 to-purple-700 text-white shadow-md shadow-violet-500/30 overflow-hidden shrink-0">
+          <img src="/octapus-logo.svg" alt="OCTAPUS" className="h-7 w-7 object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+          <Ruler className="h-6 w-6 text-white" />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
-            <p className="text-base font-extrabold tracking-tight text-foreground">THREDO</p>
-            <span className="rounded-full bg-violet-100 px-1.5 py-0.2 text-[9px] font-bold text-violet-700 dark:bg-violet-950 dark:text-violet-300">POS</span>
+            <p className="text-base font-extrabold tracking-tight text-foreground">OCTAPUS</p>
+            <span className="rounded-md bg-violet-600/10 border border-violet-500/20 px-1.5 py-0.5 text-[10px] font-bold text-violet-600 dark:text-violet-400">THREDO</span>
           </div>
           <p className="text-[11px] font-medium text-muted-foreground truncate">Tailoring & Retail Suite</p>
         </div>
       </div>
 
       {/* Navigation Items */}
-      <nav className="flex-1 space-y-1 px-3 py-3 overflow-y-auto">
+      <nav className="flex-1 space-y-1.5 px-3 py-3.5 overflow-y-auto">
         {navItems.map((item) => (
           <NavLink
             key={item.to}
@@ -50,43 +64,71 @@ function SidebarContent({ onNavigate }) {
             onClick={onNavigate}
             className={({ isActive }) =>
               cn(
-                'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150',
+                'group flex items-center justify-between rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all duration-150',
                 isActive
-                  ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/25 font-semibold'
-                  : 'text-muted-foreground hover:bg-muted/80 hover:text-foreground'
+                  ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25 font-semibold'
+                  : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/70 hover:text-foreground font-medium'
               )
             }
           >
             {({ isActive }) => (
-              <>
+              <div className="flex items-center gap-3 min-w-0 flex-1">
                 <item.icon
                   className={cn(
                     'h-4.5 w-4.5 shrink-0 transition-transform group-hover:scale-105',
-                    isActive ? 'text-primary-foreground' : 'text-muted-foreground group-hover:text-foreground'
+                    isActive ? 'text-primary-foreground' : 'text-slate-500 dark:text-slate-400 group-hover:text-foreground'
                   )}
                   style={{ width: '1.125rem', height: '1.125rem' }}
                 />
-                <span className="flex-1 truncate">{item.label}</span>
-                {isActive && (
-                  <span className="h-1.5 w-1.5 rounded-full bg-primary-foreground/90 shrink-0" />
-                )}
-              </>
+                <span className="truncate">{item.label}</span>
+                {item.badge ? (
+                  <span className={cn(
+                    'ml-auto rounded-full px-2 py-0.5 text-[9px] font-extrabold tracking-wider uppercase',
+                    item.badge === 'ADMIN'
+                      ? 'bg-indigo-600 text-white'
+                      : isActive
+                      ? 'bg-white/20 text-white'
+                      : 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm'
+                  )}>
+                    {item.badge}
+                  </span>
+                ) : isActive ? (
+                  <span className="ml-auto h-2 w-2 rounded-full bg-white shadow-sm shrink-0" />
+                ) : null}
+              </div>
             )}
           </NavLink>
         ))}
       </nav>
 
-      {/* Powered by Card */}
-      <div className="border-t border-border/80 p-3.5">
-        <div className="rounded-xl border border-violet-200/50 bg-gradient-to-br from-violet-50/80 to-indigo-50/60 p-3 dark:border-violet-900/40 dark:from-violet-950/40 dark:to-indigo-950/30">
+      {/* Paywall & License Footer Card */}
+      <div className="border-t border-border/70 p-3.5 bg-white dark:bg-slate-900">
+        <NavLink
+          to="/paywall"
+          onClick={onNavigate}
+          className="group block rounded-xl border border-violet-500/25 bg-gradient-to-br from-violet-500/10 via-indigo-500/5 to-purple-500/10 p-3 hover:border-violet-500/40 hover:shadow-md transition-all"
+        >
           <div className="flex items-center justify-between">
-            <p className="text-xs font-bold text-foreground">THREDO</p>
-            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+            <div className="flex items-center gap-1.5">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <span className="text-xs font-bold text-foreground">OCTAPUS Paywall</span>
+            </div>
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-full">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              v2.4 Active
+              Pro Plans
             </span>
           </div>
-          <p className="mt-0.5 text-[11px] text-muted-foreground">Octapus Systems & Solutions</p>
+          <p className="mt-1 text-[11px] text-muted-foreground flex items-center justify-between">
+            <span>Redeem Pass & Pricing</span>
+            <span className="font-semibold text-primary group-hover:translate-x-0.5 transition-transform">View →</span>
+          </p>
+        </NavLink>
+
+        <div className="mt-2.5 flex items-center justify-between px-1 text-[10px] font-medium text-muted-foreground">
+          <span>OCTAPUS POS <strong className="font-semibold text-foreground">v2.5 Live</strong></span>
+          <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span> Online
+          </span>
         </div>
       </div>
     </div>
@@ -96,46 +138,44 @@ function SidebarContent({ onNavigate }) {
 export default function AppLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
+  const { logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
-    await db.auth.logout();
+    await logout(true);
   };
 
   return (
     <div className="flex h-screen overflow-hidden bg-muted/30">
       {/* Desktop sidebar */}
-      <aside className="hidden w-64 shrink-0 border-r border-sidebar-border bg-sidebar-background lg:block">
+      <aside className="hidden w-64 shrink-0 border-r border-border/80 bg-white dark:bg-slate-900 text-foreground shadow-sm lg:block">
         <SidebarContent />
       </aside>
 
       {/* Mobile slide drawer */}
       <div
         className={cn(
-          "fixed inset-0 z-50 lg:hidden transition-visibility duration-300",
-          mobileOpen ? "visible" : "invisible pointer-events-none"
+          "fixed inset-0 z-50 lg:hidden transition-all duration-300",
+          mobileOpen ? "visible opacity-100" : "invisible opacity-0 pointer-events-none"
         )}
       >
-        {/* Backdrop with fade animation */}
+        {/* Solid dark backdrop with blur */}
         <div
-          className={cn(
-            "absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300 ease-in-out",
-            mobileOpen ? "opacity-100" : "opacity-0"
-          )}
+          className="absolute inset-0 bg-black/80 backdrop-blur-md transition-opacity duration-300"
           onClick={() => setMobileOpen(false)}
         />
 
-        {/* Slide-in sidebar panel */}
+        {/* Slide-in sidebar panel - 100% OPAQUE SOLID BG */}
         <aside
           className={cn(
-            "absolute left-0 top-0 h-full w-72 border-r border-sidebar-border bg-sidebar-background shadow-2xl transition-transform duration-300 ease-out",
+            "absolute left-0 top-0 h-full w-80 max-w-[85vw] border-r border-border/80 bg-white dark:bg-slate-900 text-foreground shadow-2xl transition-transform duration-300 ease-out z-50 flex flex-col overflow-hidden",
             mobileOpen ? "translate-x-0" : "-translate-x-full"
           )}
         >
           <button
             onClick={() => setMobileOpen(false)}
             aria-label="Close navigation"
-            className="absolute right-3.5 top-4 rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            className="absolute right-3 top-3.5 rounded-xl p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors z-20"
           >
             <X className="h-5 w-5" />
           </button>
@@ -154,7 +194,10 @@ export default function AppLayout() {
             >
               <Menu className="h-5 w-5" />
             </button>
-            <div className="relative hidden sm:block">
+
+            <AccessBadge />
+
+            <div className="relative hidden md:block ml-2">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
                 type="text"
@@ -164,7 +207,7 @@ export default function AppLayout() {
                     navigate(`/orders?q=${encodeURIComponent(e.currentTarget.value.trim())}`);
                   }
                 }}
-                className="h-9 w-64 rounded-lg border border-input bg-muted/40 pl-9 pr-3 text-sm outline-none focus:border-primary focus:bg-card transition-all"
+                className="h-9 w-60 rounded-lg border border-input bg-muted/40 pl-9 pr-3 text-xs outline-none focus:border-primary focus:bg-card transition-all"
               />
             </div>
           </div>
@@ -173,10 +216,7 @@ export default function AppLayout() {
             <Button variant="ghost" size="icon" onClick={toggleTheme} className="h-9 w-9 rounded-lg" title="Toggle theme">
               {theme === 'dark' ? <Sun className="h-4.5 w-4.5" style={{ width: '1.125rem', height: '1.125rem' }} /> : <Moon className="h-4.5 w-4.5" style={{ width: '1.125rem', height: '1.125rem' }} />}
             </Button>
-            <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-lg" title="Notifications">
-              <Bell className="h-4.5 w-4.5" style={{ width: '1.125rem', height: '1.125rem' }} />
-              <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-violet-600" />
-            </Button>
+            <NotificationPopover />
             <Button variant="ghost" size="icon" onClick={handleLogout} className="h-9 w-9 rounded-lg text-muted-foreground hover:text-destructive" title="Sign out">
               <LogOut className="h-4.5 w-4.5" style={{ width: '1.125rem', height: '1.125rem' }} />
             </Button>

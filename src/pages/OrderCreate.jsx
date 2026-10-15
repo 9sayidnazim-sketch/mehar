@@ -5,8 +5,7 @@ import { motion } from 'framer-motion';
 
 import { formatCurrency } from '@/lib/mehar-utils';
 import {
-  ArrowLeft, User, Calendar, Ruler, Shirt, Sparkles, DollarSign,
-  Truck, Save, X, Plus, Search
+  ArrowLeft, User, Calendar, Ruler, Shirt, DollarSign, Save, Plus, Search
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

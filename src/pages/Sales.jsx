@@ -6,8 +6,8 @@ import { formatCurrency, formatDate } from '@/lib/mehar-utils';
 import { generateSaleInvoicePdf, downloadSaleBill } from '@/lib/pdf-utils';
 import {
   ShoppingBag, Plus, Minus, Trash2, Send, Search, Package, Receipt,
-  MessageCircle, CheckCircle2, Download, ExternalLink, RefreshCw,
-  Eye, AlertTriangle, Clock, CheckSquare, Square, FileText
+  MessageCircle, CheckCircle2, Download, RefreshCw,
+  Eye, AlertTriangle, Clock, CheckSquare, FileText
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
