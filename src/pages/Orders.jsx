@@ -1,4 +1,4 @@
-import { db, formatWhatsAppNumber } from '@/api/base44Client';
+import { db, formatWhatsAppNumber, onDbUpdate } from '@/api/base44Client';
 import React, { useEffect, useState } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -8,7 +8,7 @@ import { formatCurrency, formatDate, daysUntil } from '@/lib/mehar-utils';
 import { exportOrdersPdf, downloadOrderBill } from '@/lib/pdf-utils';
 import {
   Plus, Search, Download, ClipboardList, ArrowLeft,
-  MessageCircle, AlertTriangle, Loader2, Clock, Eye
+  MessageCircle, AlertTriangle, Loader2, Clock, Eye, RefreshCw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -61,10 +61,25 @@ export default function Orders() {
   const [gatewayStatus, setGatewayStatus] = useState(null);
   const [gatewayChecking, setGatewayChecking] = useState(false);
   const [downloadingBill, setDownloadingBill] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     loadOrders();
+    const unsubscribe = onDbUpdate(['Order', 'Customer', 'Payment'], () => {
+      loadOrders();
+    });
+    return () => unsubscribe();
   }, []);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadOrders();
+    setTimeout(() => setRefreshing(false), 400);
+    toast({
+      title: 'Orders Refreshed',
+      description: 'Loaded latest order and customer data from database.'
+    });
+  };
 
   useEffect(() => {
     const qParam = params.get('q');
@@ -244,6 +259,9 @@ export default function Orders() {
           </div>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" className="gap-2" onClick={handleRefresh} disabled={refreshing}>
+            <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} /> Refresh
+          </Button>
           <Button variant="outline" className="gap-2" onClick={() => exportOrdersPdf(filtered)}>
             <Download className="h-4 w-4" /> Export
           </Button>

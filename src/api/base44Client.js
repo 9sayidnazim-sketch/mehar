@@ -361,14 +361,39 @@ function setTable(table, data) {
   }
   try {
     localStorage.setItem(STORAGE_PREFIX + table, JSON.stringify(data));
+    window.dispatchEvent(new CustomEvent('thredo-db-updated', { detail: { table, action: 'write' } }));
   } catch (e) {
     console.warn(`[THREDO DB] Error saving ${table}:`, e);
   }
 }
 
 // Initialise storage tables
-function initStorage() {
+export function initStorage(force = false) {
   if (typeof window === 'undefined') return;
+
+  if (force) {
+    setTable('Company', [DEFAULT_COMPANY]);
+    setTable('Product', DEFAULT_PRODUCTS);
+    setTable('Customer', DEFAULT_CUSTOMERS);
+    setTable('Tailor', DEFAULT_TAILORS);
+    setTable('MeasurementTemplate', DEFAULT_TEMPLATES);
+    setTable('Sale', DEFAULT_SALES);
+    setTable('Order', DEFAULT_ORDERS);
+    setTable('Payment', DEFAULT_PAYMENTS);
+    setTable('Expense', []);
+    setTable('WebsiteConfig', [{
+      id: 'cfg-1',
+      enabled: true,
+      auto_accept: false,
+      title: 'THREDO Online Boutique',
+      tagline: 'Bespoke tailoring and curated retail fabrics in Dubai.',
+      garment_types: ['Emirati Kandora', 'Bespoke Suit', 'Formal Shirt', 'Trousers'],
+      contact_phone: '+971 52 872 4090',
+      contact_whatsapp: '+971 52 872 4090'
+    }]);
+    return;
+  }
+
   const existingComp = getTable('Company', []);
   if (!existingComp.length || existingComp[0]?.name?.includes('Mehar')) {
     setTable('Company', [DEFAULT_COMPANY]);
@@ -408,6 +433,61 @@ function initStorage() {
       contact_whatsapp: '+971 52 872 4090'
     }]);
   }
+}
+
+// Full Database Reset / Seed Refresh
+export function resetDatabase() {
+  if (typeof window === 'undefined') {
+    memoryStore.Company = [DEFAULT_COMPANY];
+    memoryStore.Product = [...DEFAULT_PRODUCTS];
+    memoryStore.Customer = [...DEFAULT_CUSTOMERS];
+    memoryStore.Tailor = [...DEFAULT_TAILORS];
+    memoryStore.MeasurementTemplate = [...DEFAULT_TEMPLATES];
+    memoryStore.Sale = [...DEFAULT_SALES];
+    memoryStore.Order = [...DEFAULT_ORDERS];
+    memoryStore.Payment = [...DEFAULT_PAYMENTS];
+    memoryStore.Expense = [];
+    return { success: true };
+  }
+  try {
+    const tables = ['Company', 'Product', 'Customer', 'Tailor', 'MeasurementTemplate', 'Sale', 'Order', 'Payment', 'Expense', 'WebsiteConfig'];
+    tables.forEach((t) => localStorage.removeItem(STORAGE_PREFIX + t));
+    initStorage(true);
+    window.dispatchEvent(new CustomEvent('thredo-db-updated', { detail: { table: 'all', reset: true } }));
+    return { success: true };
+  } catch (err) {
+    console.error('[THREDO DB] Reset error:', err);
+    return { success: false, error: err.message };
+  }
+}
+
+// Database manual refresh trigger
+export function refreshDatabase(tableName = 'all') {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent('thredo-db-updated', { detail: { table: tableName, manual: true } }));
+}
+
+// Subscribe to database updates (works across tabs and components)
+export function onDbUpdate(tables = [], callback) {
+  if (typeof window === 'undefined') return () => {};
+  const handler = (e) => {
+    const updatedTable = e.detail?.table;
+    if (!tables.length || updatedTable === 'all' || tables.includes(updatedTable)) {
+      callback(e.detail);
+    }
+  };
+  window.addEventListener('thredo-db-updated', handler);
+  return () => window.removeEventListener('thredo-db-updated', handler);
+}
+
+// Cross-tab synchronization via native storage event
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (e) => {
+    if (e.key && e.key.startsWith(STORAGE_PREFIX)) {
+      const table = e.key.replace(STORAGE_PREFIX, '');
+      window.dispatchEvent(new CustomEvent('thredo-db-updated', { detail: { table, action: 'cross-tab-sync' } }));
+    }
+  });
 }
 
 initStorage();
@@ -805,7 +885,11 @@ export const db = {
         return { ok: true };
       }
     }
-  }
+  },
+  resetDatabase,
+  refresh: refreshDatabase,
+  refreshDatabase,
+  onDbUpdate
 };
 
 // Expose globally for legacy inline file scripts

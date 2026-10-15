@@ -1,4 +1,4 @@
-import { db } from '@/api/base44Client';
+import { db, onDbUpdate } from '@/api/base44Client';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -14,9 +14,10 @@ import StatusBadge from '@/components/StatusBadge';
 import {
   ShoppingBag, Package, Scissors, AlertTriangle, Wallet,
   TrendingUp, DollarSign, Plus, Search, CreditCard, UserPlus,
-  ShoppingCart, Settings as SettingsIcon, Building2, X
+  ShoppingCart, Settings as SettingsIcon, Building2, X, RefreshCw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/components/ui/use-toast';
 import QuickActionDialog from '@/components/QuickActionDialog';
 
 const STATUS_COLORS = {
@@ -53,24 +54,43 @@ export default function Dashboard() {
   const [companySetupNeeded, setCompanySetupNeeded] = useState(false);
   const [dismissed, setDismissed] = useState(false);
 
+  const { toast } = useToast();
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadDashboard = async () => {
+    try {
+      const [orders, sales, payments, companies] = await Promise.all([
+        db.entities.Order.list('-created_date', 500),
+        db.entities.Sale.list('-created_date', 200),
+        db.entities.Payment.list('-created_date', 200),
+        db.entities.Company.list('-created_date', 5),
+      ]);
+      setRaw({ orders, sales, payments });
+      if (companies.length === 0) setCompanySetupNeeded(true);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    (async () => {
-      try {
-        const [orders, sales, payments, companies] = await Promise.all([
-          db.entities.Order.list('-created_date', 500),
-          db.entities.Sale.list('-created_date', 200),
-          db.entities.Payment.list('-created_date', 200),
-          db.entities.Company.list('-created_date', 5),
-        ]);
-        setRaw({ orders, sales, payments });
-        if (companies.length === 0) setCompanySetupNeeded(true);
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setLoading(false);
-      }
-    })();
+    loadDashboard();
+    const unsubscribe = onDbUpdate(['Order', 'Sale', 'Payment', 'Company'], () => {
+      loadDashboard();
+    });
+    return () => unsubscribe();
   }, []);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadDashboard();
+    setTimeout(() => setRefreshing(false), 400);
+    toast({
+      title: 'Dashboard Refreshed',
+      description: 'KPIs, order pipelines, and daily revenue updated.'
+    });
+  };
 
   const m = useMemo(() => {
     if (!raw) return null;
@@ -150,11 +170,16 @@ export default function Dashboard() {
           <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-sm text-muted-foreground">Welcome back — here's your tailoring business at a glance</p>
         </div>
-        <Link to="/orders/new">
-          <Button className="gap-2 bg-primary hover:bg-primary/90">
-            <Plus className="h-4 w-4" /> New Order
+        <div className="flex gap-2">
+          <Button variant="outline" className="gap-2" onClick={handleRefresh} disabled={refreshing}>
+            <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} /> Refresh
           </Button>
-        </Link>
+          <Link to="/orders/new">
+            <Button className="gap-2 bg-primary hover:bg-primary/90">
+              <Plus className="h-4 w-4" /> New Order
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {companySetupNeeded && !dismissed && (

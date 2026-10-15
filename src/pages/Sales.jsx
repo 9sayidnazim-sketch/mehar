@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { db, normalizePhoneNumber, formatWhatsAppNumber } from '@/api/base44Client';
+import { db, normalizePhoneNumber, formatWhatsAppNumber, onDbUpdate } from '@/api/base44Client';
 
 import { formatCurrency, formatDate } from '@/lib/mehar-utils';
 import { generateSaleInvoicePdf, downloadSaleBill } from '@/lib/pdf-utils';
@@ -78,7 +78,25 @@ export default function Sales() {
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [quickProduct, setQuickProduct] = useState({ name: '', price: '', category: 'Fabrics', sku: '' });
 
-  useEffect(() => { load(); }, []);
+  const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    load();
+    const unsubscribe = onDbUpdate(['Product', 'Customer', 'Sale'], () => {
+      load();
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await load();
+    setTimeout(() => setRefreshing(false), 400);
+    toast({
+      title: 'POS Refreshed',
+      description: 'Products catalog, inventory, and customer lists updated.'
+    });
+  };
 
   const load = async () => {
     try {
@@ -506,9 +524,14 @@ export default function Sales() {
           <h1 className="text-2xl font-bold tracking-tight">Sales Panel</h1>
           <p className="text-sm text-muted-foreground">Point of Sale (POS) — build bills, generate tax invoices & send via WhatsApp</p>
         </div>
-        <Button onClick={() => setQuickAddOpen(true)} variant="outline" className="gap-2">
-          <Plus className="h-4 w-4" /> Quick Add Product
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={handleRefresh} variant="outline" className="gap-2" disabled={refreshing}>
+            <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} /> Refresh
+          </Button>
+          <Button onClick={() => setQuickAddOpen(true)} variant="outline" className="gap-2">
+            <Plus className="h-4 w-4" /> Quick Add Product
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-5">

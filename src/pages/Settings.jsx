@@ -1,10 +1,11 @@
-import { db } from '@/api/base44Client';
+import { db, onDbUpdate } from '@/api/base44Client';
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 
 import {
   Building2, Ruler, CreditCard, Palette, Plus, Trash2,
-  Save, Globe, ShoppingBag, Edit, Package
+  Save, Globe, ShoppingBag, Edit, Package, Database,
+  RefreshCw, CheckCircle2, AlertTriangle
 } from 'lucide-react';
 import WebsiteOrdering from '@/components/settings/WebsiteOrdering';
 import { Button } from '@/components/ui/button';
@@ -25,6 +26,7 @@ const TABS = [
   { key: 'payment', label: 'Payment Methods', icon: CreditCard },
   { key: 'branding', label: 'Branding', icon: Palette },
   { key: 'website', label: 'Website Ordering', icon: Globe },
+  { key: 'database', label: 'Database & Sync', icon: Database },
 ];
 
 export default function Settings() {
@@ -60,6 +62,7 @@ export default function Settings() {
         {tab === 'payment' && <PaymentMethods />}
         {tab === 'branding' && <Branding />}
         {tab === 'website' && <WebsiteOrdering />}
+        {tab === 'database' && <DatabaseSettings />}
       </motion.div>
     </div>
   );
@@ -709,6 +712,182 @@ function ProductsCatalog() {
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
             <Button onClick={saveProduct} className="bg-primary hover:bg-primary/90">
               {editingProduct ? 'Update Product' : 'Add Product'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function DatabaseSettings() {
+  const { toast } = useToast();
+  const [counts, setCounts] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [resetting, setResetting] = useState(false);
+
+  const loadCounts = async () => {
+    try {
+      const [companies, products, customers, tailors, templates, sales, orders, payments, expenses, configs] = await Promise.all([
+        db.entities.Company.list('-created_date', 500),
+        db.entities.Product.list('-created_date', 500),
+        db.entities.Customer.list('-created_date', 500),
+        db.entities.Tailor.list('-created_date', 500),
+        db.entities.MeasurementTemplate.list('-created_date', 500),
+        db.entities.Sale.list('-created_date', 500),
+        db.entities.Order.list('-created_date', 500),
+        db.entities.Payment.list('-created_date', 500),
+        db.entities.Expense.list('-created_date', 500),
+        db.entities.WebsiteConfig.list('-created_date', 10),
+      ]);
+      setCounts({
+        companies: companies?.length || 0,
+        products: products?.length || 0,
+        customers: customers?.length || 0,
+        tailors: tailors?.length || 0,
+        templates: templates?.length || 0,
+        sales: sales?.length || 0,
+        orders: orders?.length || 0,
+        payments: payments?.length || 0,
+        expenses: expenses?.length || 0,
+        configs: configs?.length || 0
+      });
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadCounts();
+    const unsub = onDbUpdate([], () => loadCounts());
+    return () => unsub();
+  }, []);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    db.refresh();
+    await loadCounts();
+    setTimeout(() => setRefreshing(false), 400);
+    toast({
+      title: 'Database Refreshed',
+      description: 'Storage entities, cached query states, and cross-tab triggers synchronized.'
+    });
+  };
+
+  const handleReset = async () => {
+    setResetting(true);
+    try {
+      db.resetDatabase();
+      await loadCounts();
+      setResetDialogOpen(false);
+      toast({
+        title: 'Database Reset Successfully',
+        description: 'All tables re-seeded with official THREDO sample catalog, templates & orders.'
+      });
+    } catch (e) {
+      toast({ title: 'Failed to reset database', description: e.message, variant: 'destructive' });
+    } finally {
+      setResetting(false);
+    }
+  };
+
+  // Compute storage usage
+  const storageSizeKb = typeof window !== 'undefined'
+    ? Math.round(Object.keys(localStorage).reduce((acc, k) => acc + (localStorage.getItem(k)?.length || 0), 0) / 1024)
+    : 0;
+
+  return (
+    <div className="card-shadow space-y-6 rounded-xl border border-border bg-card p-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-semibold">Database & Cache Synchronization</h2>
+          <p className="text-sm text-muted-foreground">Monitor local entity persistence, multi-tab sync, and seed data</p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" className="gap-2" onClick={handleRefresh} disabled={refreshing}>
+            <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} /> Refresh Database
+          </Button>
+          <Button variant="destructive" className="gap-2" onClick={() => setResetDialogOpen(true)}>
+            <Trash2 className="h-4 w-4" /> Reset to Factory Seed
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className="rounded-xl border border-border bg-muted/20 p-4">
+          <p className="text-xs text-muted-foreground">Storage Engine</p>
+          <p className="text-sm font-semibold mt-1 flex items-center gap-1.5 text-emerald-600">
+            <CheckCircle2 className="h-4 w-4" /> LocalStorage + Base44
+          </p>
+          <p className="text-[11px] text-muted-foreground mt-1">Est. {storageSizeKb} KB cached</p>
+        </div>
+        <div className="rounded-xl border border-border bg-muted/20 p-4">
+          <p className="text-xs text-muted-foreground">Cross-Tab Reactivity</p>
+          <p className="text-sm font-semibold mt-1 flex items-center gap-1.5 text-emerald-600">
+            <CheckCircle2 className="h-4 w-4" /> Live Broadcasting
+          </p>
+          <p className="text-[11px] text-muted-foreground mt-1">window.onstorage active</p>
+        </div>
+        <div className="rounded-xl border border-border bg-muted/20 p-4">
+          <p className="text-xs text-muted-foreground">Serverless Sync</p>
+          <p className="text-sm font-semibold mt-1 flex items-center gap-1.5 text-emerald-600">
+            <CheckCircle2 className="h-4 w-4" /> /api/invoices + /tmp
+          </p>
+          <p className="text-[11px] text-muted-foreground mt-1">Atomic file persistence</p>
+        </div>
+        <div className="rounded-xl border border-border bg-muted/20 p-4">
+          <p className="text-xs text-muted-foreground">Total Entities Tracked</p>
+          <p className="text-2xl font-bold mt-1 text-primary">
+            {counts ? Object.values(counts).reduce((a, b) => a + b, 0) : '—'}
+          </p>
+          <p className="text-[11px] text-muted-foreground mt-1">across 10 collections</p>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <h3 className="text-sm font-semibold text-foreground">Entity Collection Counts</h3>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+          {[
+            { label: 'Products & Fabrics', key: 'products', color: 'text-violet-600' },
+            { label: 'Orders (Custom)', key: 'orders', color: 'text-indigo-600' },
+            { label: 'Retail Sales', key: 'sales', color: 'text-rose-600' },
+            { label: 'Customers', key: 'customers', color: 'text-emerald-600' },
+            { label: 'Tailors / Staff', key: 'tailors', color: 'text-teal-600' },
+            { label: 'Payments', key: 'payments', color: 'text-amber-600' },
+            { label: 'Expenses', key: 'expenses', color: 'text-red-600' },
+            { label: 'Measurement Specs', key: 'templates', color: 'text-blue-600' },
+            { label: 'Company Profile', key: 'companies', color: 'text-slate-600' },
+            { label: 'Online Config', key: 'configs', color: 'text-sky-600' },
+          ].map((item) => (
+            <div key={item.key} className="flex flex-col justify-between rounded-lg border border-border bg-card p-3">
+              <span className="text-xs text-muted-foreground">{item.label}</span>
+              <span className={`text-lg font-bold mt-1.5 ${item.color}`}>
+                {counts ? counts[item.key] : '...'}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" /> Reset Database to Factory Defaults?
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2 text-sm text-muted-foreground">
+            <p>This action will clear all local changes and re-initialize the database with official THREDO sample data (fabrics, Emirati Kandora templates, default customers, master tailors, and initial POS sales).</p>
+            <p className="font-semibold text-foreground">Are you sure you want to proceed?</p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setResetDialogOpen(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleReset} disabled={resetting}>
+              {resetting ? 'Resetting...' : 'Yes, Reset Database'}
             </Button>
           </DialogFooter>
         </DialogContent>

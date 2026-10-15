@@ -1,10 +1,10 @@
-import { db } from '@/api/base44Client';
+import { db, onDbUpdate } from '@/api/base44Client';
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import StatusBadge from '@/components/StatusBadge';
 import { formatCurrency, formatDate } from '@/lib/mehar-utils';
-import { Globe, Check, X, Package, ShoppingBag, Clock, Copy } from 'lucide-react';
+import { Globe, Check, X, Package, ShoppingBag, Clock, Copy, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -15,25 +15,42 @@ export default function OnlineOrders() {
   const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadOnlineOrders = async () => {
+    try {
+      const [o, s, c] = await Promise.all([
+        db.entities.Order.filter({ source: 'online' }, { sort: '-created_date', limit: 200 }),
+        db.entities.Sale.filter({ source: 'online' }, { sort: '-created_date', limit: 200 }),
+        db.entities.WebsiteConfig.list('-created_date', 5),
+      ]);
+      setOrders(Array.isArray(o) ? o : (o?.items || []));
+      setSales(Array.isArray(s) ? s : (s?.items || []));
+      setConfig(c[0] || null);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    (async () => {
-      try {
-        const [o, s, c] = await Promise.all([
-          db.entities.Order.filter({ source: 'online' }, { sort: '-created_date', limit: 200 }),
-          db.entities.Sale.filter({ source: 'online' }, { sort: '-created_date', limit: 200 }),
-          db.entities.WebsiteConfig.list('-created_date', 5),
-        ]);
-        setOrders(Array.isArray(o) ? o : (o?.items || []));
-        setSales(Array.isArray(s) ? s : (s?.items || []));
-        setConfig(c[0] || null);
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setLoading(false);
-      }
-    })();
+    loadOnlineOrders();
+    const unsubscribe = onDbUpdate(['Order', 'Sale', 'WebsiteConfig'], () => {
+      loadOnlineOrders();
+    });
+    return () => unsubscribe();
   }, []);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadOnlineOrders();
+    setTimeout(() => setRefreshing(false), 400);
+    toast({
+      title: 'Online Orders Refreshed',
+      description: 'Incoming website orders & catalog submissions updated.'
+    });
+  };
 
   const pendingOrders = orders.filter((o) => o.online_pending && o.status !== 'Cancelled');
   const pendingSales = sales.filter((s) => s.online_pending && s.status !== 'Cancelled');
@@ -77,18 +94,28 @@ export default function OnlineOrders() {
           <h1 className="text-2xl font-bold tracking-tight">Online Orders</h1>
           <p className="text-sm text-muted-foreground">Orders received from your public ordering page</p>
         </div>
-        {config && (
+        <div className="flex gap-2">
           <Button
             variant="outline"
             className="gap-2"
-            onClick={() => {
-              navigator.clipboard?.writeText(embedUrl);
-              toast({ title: 'Link copied' });
-            }}
+            onClick={handleRefresh}
+            disabled={refreshing}
           >
-            <Copy className="h-4 w-4" /> Copy public link
+            <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} /> Refresh
           </Button>
-        )}
+          {config && (
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={() => {
+                navigator.clipboard?.writeText(embedUrl);
+                toast({ title: 'Link copied' });
+              }}
+            >
+              <Copy className="h-4 w-4" /> Copy public link
+            </Button>
+          )}
+        </div>
       </div>
 
       {config && (

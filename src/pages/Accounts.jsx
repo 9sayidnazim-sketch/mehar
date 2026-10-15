@@ -1,16 +1,19 @@
-import { db } from '@/api/base44Client';
+import { db, onDbUpdate } from '@/api/base44Client';
 import React, { useEffect, useState } from 'react';
 
 import { formatCurrency, formatDate } from '@/lib/mehar-utils';
 import KpiCard from '@/components/KpiCard';
 import ExpenseDialog from '@/components/accounts/ExpenseDialog';
-import { Wallet, TrendingUp, TrendingDown, PiggyBank, Plus, Receipt } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, PiggyBank, Plus, Receipt, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/components/ui/use-toast';
 
 export default function Accounts() {
+  const { toast } = useToast();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -30,7 +33,23 @@ export default function Accounts() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    const unsubscribe = onDbUpdate(['Payment', 'Expense', 'Order', 'Sale'], () => {
+      load();
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await load();
+    setTimeout(() => setRefreshing(false), 400);
+    toast({
+      title: 'Accounts Refreshed',
+      description: 'Ledgers, collections, production costs, and net profit recalculated.'
+    });
+  };
 
   const m = React.useMemo(() => {
     if (!data) return null;
@@ -68,9 +87,14 @@ export default function Accounts() {
           <h1 className="text-2xl font-bold tracking-tight">Accounts</h1>
           <p className="text-sm text-muted-foreground">Income, expenses and profitability at a glance</p>
         </div>
-        <Button className="gap-2 bg-primary hover:bg-primary/90" onClick={() => setDialogOpen(true)}>
-          <Plus className="h-4 w-4" /> Record Expense
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" className="gap-2" onClick={handleRefresh} disabled={refreshing}>
+            <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} /> Refresh
+          </Button>
+          <Button className="gap-2 bg-primary hover:bg-primary/90" onClick={() => setDialogOpen(true)}>
+            <Plus className="h-4 w-4" /> Record Expense
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
