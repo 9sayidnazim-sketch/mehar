@@ -7,8 +7,9 @@ import { generateSaleInvoicePdf, downloadSaleBill } from '@/lib/pdf-utils';
 import {
   ShoppingBag, Plus, Minus, Trash2, Send, Search, Package, Receipt,
   MessageCircle, CheckCircle2, Download, RefreshCw,
-  Eye, AlertTriangle, Clock, CheckSquare, FileText
+  Eye, AlertTriangle, Clock, CheckSquare, FileText, Sparkles, Users, QrCode
 } from 'lucide-react';
+import WhatsAppLinkModal from '@/components/WhatsAppLinkModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -52,11 +53,13 @@ export default function Sales() {
 
   // Send on WhatsApp Modal State
   const [waModalOpen, setWaModalOpen] = useState(false);
+  const [waLinkModalOpen, setWaLinkModalOpen] = useState(false);
   const [waSale, setWaSale] = useState(null);
   const [waPhone, setWaPhone] = useState('');
   const [waCountryCode, setWaCountryCode] = useState('971');
   const [waMessage, setWaMessage] = useState('');
   const [waSaveToCustomer, setWaSaveToCustomer] = useState(false);
+  const [waForceRetry, setWaForceRetry] = useState(false);
   const [waSending, setWaSending] = useState(false);
 
   // Invoice Detail Modal State
@@ -72,7 +75,32 @@ export default function Sales() {
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [quickProduct, setQuickProduct] = useState({ name: '', price: '', category: 'Fabrics', sku: '' });
 
-  useEffect(() => { load(); }, []);
+  // Custom Line Item Dialog (On-the-fly custom service / item)
+  const [customItemOpen, setCustomItemOpen] = useState(false);
+  const [customItem, setCustomItem] = useState({
+    name: '',
+    price: '',
+    quantity: '1',
+    category: 'Alteration / Service',
+    saveToCatalog: false
+  });
+
+  // Quick Customer Dialog (On-the-fly customer registration & selection)
+  const [quickCustomerOpen, setQuickCustomerOpen] = useState(false);
+  const [quickCust, setQuickCust] = useState({ name: '', phone: '', email: '', address: '' });
+  const [savingQuickCust, setSavingQuickCust] = useState(false);
+
+  useEffect(() => {
+    load();
+    const handleSync = (e) => {
+      const ent = e.detail?.entity;
+      if (ent === 'Customer' || ent === 'Product' || ent === 'Sale') {
+        load();
+      }
+    };
+    window.addEventListener('thredo-data-updated', handleSync);
+    return () => window.removeEventListener('thredo-data-updated', handleSync);
+  }, []);
 
   const load = async () => {
     try {
@@ -202,15 +230,7 @@ export default function Sales() {
         } catch (_) {}
       }
 
-      // 4. Trigger WhatsApp Auto-Dispatch via function invoker
-      let waResult = null;
-      try {
-        waResult = await db.functions.invoke('sendSaleBill', { sale_id: createdSale.id });
-      } catch (err) {
-        console.warn('Function invoke note:', err);
-      }
-
-      // 5. Pre-build Direct WhatsApp link
+      // Requirement 11: Manual sending only - do not automatically dispatch invoices to customer
       const encodedMsg = encodeURIComponent(
         `Dear ${saleDraft.customer_name},\n` +
         `Thank you for your purchase at THREDO!\n\n` +
@@ -232,8 +252,8 @@ export default function Sales() {
         customerName: saleDraft.customer_name,
         phone: customer.phone,
         normPhone,
-        waUrl: waResult?.whatsapp?.url || directWaUrl,
-        waStatus: waResult?.whatsapp?.ok ? 'sent' : 'ready',
+        waUrl: directWaUrl,
+        waStatus: 'ready',
         pdfDownload: () => pdfResult.download(),
       });
 
@@ -255,11 +275,11 @@ export default function Sales() {
     }
   };
 
-  // Open the "Send Invoice on WhatsApp" Popup
+  // Open the "Send Invoice on WhatsApp" Popup (Requirement 8: Show recipient before sending)
   const openWhatsAppModal = (s) => {
     const custName = s.customer_name || 'Customer';
     const invNo = s.sale_id || (s.id ? `INV-${s.id.slice(-6).toUpperCase()}` : 'INV-0001');
-    const initialPhone = s.sent_to_number || s.customer_phone || '';
+    const initialPhone = s.whatsapp_recipient || s.sent_to_number || s.customer_phone || '';
 
     // Detect country code from phone or default to UAE 971
     let detectedCountry = '971';
@@ -274,8 +294,10 @@ export default function Sales() {
     setWaSale(s);
     setWaPhone(initialPhone);
     setWaCountryCode(detectedCountry);
-    setWaMessage(`Hello ${custName}, your invoice ${invNo} is attached.\nThank you for your purchase.`);
+    // Requirement 7: Caption format
+    setWaMessage(`Hello ${custName}, here is your invoice ${invNo}. Thank you.`);
     setWaSaveToCustomer(false);
+    setWaForceRetry(false);
     setWaModalOpen(true);
   };
 
@@ -286,7 +308,7 @@ export default function Sales() {
     if (!check.isValid) {
       toast({
         title: 'Invalid WhatsApp Number',
-        description: 'Please enter a valid WhatsApp number',
+        description: 'Please enter a valid WhatsApp number with country code (8 to 15 digits)',
         variant: 'destructive'
       });
       return;
@@ -295,37 +317,84 @@ export default function Sales() {
     setWaSending(true);
     try {
       const res = await db.functions.invoke('sendSaleBill', {
+        invoice_id: waSale.sale_id || waSale.id,
         sale_id: waSale.id,
-        phone: waPhone,
+        phone: check.formatted || waPhone,
         country_code: waCountryCode,
         custom_message: waMessage,
-        update_customer_phone: waSaveToCustomer
+        update_customer_phone: waSaveToCustomer,
+        force_retry: waForceRetry,
+        sale_draft: waSale,
+        customer_name: waSale.customer_name,
+        total: waSale.total,
       });
 
-      if (res.success) {
+      // Requirement 10: If sending times out, show "Result unknown—check before retrying"
+      if (res.timed_out || res.error?.includes('Result unknown')) {
         toast({
-          title: 'Invoice Sent',
-          description: `Invoice sent to +${res.formatted_number || check.formatted}`
+          title: 'Result unknown—check before retrying',
+          description: 'The request to Orbit WhatsApp gateway timed out. Do not automatically resend before checking.',
+          variant: 'destructive',
+          duration: 9000,
+        });
+        return;
+      }
+
+      // Requirement 8: Persistent idempotency record warning
+      if (res.already_submitted) {
+        toast({
+          title: 'Invoice Already Submitted',
+          description: res.message || `Invoice was already submitted to +${res.recipient}. Check duplicate checkbox to resend.`,
         });
         setWaModalOpen(false);
+        await load();
+        return;
+      }
+
+      if (res.success) {
+        // Requirement 9: Label successful API submission "Submitted"
+        toast({
+          title: 'Invoice Submitted',
+          description: `Invoice ${res.invoice_id || waSale.sale_id} submitted to WhatsApp (+${res.recipient || check.formatted}). Status: Submitted.`,
+        });
+        setWaModalOpen(false);
+        setWaForceRetry(false);
         await load();
         if (detailSale && detailSale.id === waSale.id && res.sale) {
           setDetailSale(res.sale);
         }
       } else {
-        toast({
-          title: 'WhatsApp Delivery Failed',
-          description: res.error || 'Failed to dispatch message via gateway',
-          variant: 'destructive'
-        });
+        if (res?.not_logged_in || res?.error?.includes('not connected or logged in')) {
+          toast({
+            title: 'WhatsApp Device Not Linked',
+            description: 'Orbit WhatsApp instance is not logged in. Scan the QR code to pair your device.',
+            variant: 'destructive',
+          });
+          setWaLinkModalOpen(true);
+        } else {
+          toast({
+            title: 'WhatsApp Dispatch Failed',
+            description: res?.error || 'Failed to dispatch invoice via Orbit WhatsApp',
+            variant: 'destructive',
+          });
+        }
         await load();
       }
     } catch (err) {
-      toast({
-        title: 'Error sending invoice',
-        description: err.message || 'WhatsApp gateway communication error',
-        variant: 'destructive'
-      });
+      if (err.name === 'AbortError' || err.message?.includes('timeout') || err.message?.includes('Result unknown')) {
+        toast({
+          title: 'Result unknown—check before retrying',
+          description: 'The request to Orbit WhatsApp gateway timed out. Do not automatically resend before checking.',
+          variant: 'destructive',
+          duration: 9000,
+        });
+      } else {
+        toast({
+          title: 'Error sending invoice',
+          description: err.message || 'WhatsApp gateway communication error',
+          variant: 'destructive',
+        });
+      }
     } finally {
       setWaSending(false);
     }
@@ -363,7 +432,12 @@ export default function Sales() {
       const targetSale = sales.find((s) => s.id === saleId);
       setBulkProgress(`Sending ${i + 1} of ${selectedSales.length} (${targetSale?.sale_id || ''})...`);
       try {
-        const res = await db.functions.invoke('sendSaleBill', { sale_id: saleId });
+        const res = await db.functions.invoke('sendSaleBill', {
+          invoice_id: targetSale?.sale_id || saleId,
+          sale_id: saleId,
+          phone: targetSale?.whatsapp_recipient || targetSale?.customer_phone,
+          sale_draft: targetSale,
+        });
         if (res.success) {
           successCount++;
         } else {
@@ -424,6 +498,94 @@ export default function Sales() {
     }
   };
 
+  // On-time Custom Line Item Handler (Directly to POS cart)
+  const handleAddCustomItem = async () => {
+    if (!customItem.name.trim() || !customItem.price) {
+      toast({ title: 'Name and price are required', variant: 'destructive' });
+      return;
+    }
+    const unitPrice = parseFloat(customItem.price) || 0;
+    const qty = parseInt(customItem.quantity) || 1;
+    const itemId = `custom-${Date.now()}`;
+
+    if (customItem.saveToCatalog) {
+      try {
+        await db.entities.Product.create({
+          name: customItem.name.trim(),
+          price: unitPrice,
+          category: customItem.category || 'Custom Service',
+          sku: `SRV-${Math.floor(Math.random() * 9000) + 1000}`,
+          is_active: true,
+          stock: 999,
+          unit: 'service',
+        });
+        load();
+      } catch (err) {
+        console.error('Failed to save custom item to catalog:', err);
+      }
+    }
+
+    setCart((prev) => [
+      ...prev,
+      {
+        product_id: itemId,
+        name: customItem.name.trim(),
+        price: unitPrice,
+        quantity: qty,
+        is_custom: true,
+        category: customItem.category,
+      },
+    ]);
+
+    toast({
+      title: 'Custom Item Added On Time',
+      description: `${customItem.name.trim()} (AED ${unitPrice} x ${qty}) added to cart.`,
+    });
+
+    setCustomItemOpen(false);
+    setCustomItem({
+      name: '',
+      price: '',
+      quantity: '1',
+      category: 'Alteration / Service',
+      saveToCatalog: false,
+    });
+  };
+
+  // On-time Quick Customer Handler (Create & Auto-Select)
+  const handleQuickAddCustomer = async () => {
+    if (!quickCust.name.trim() || !quickCust.phone.trim()) {
+      toast({ title: 'Customer name and phone are required', variant: 'destructive' });
+      return;
+    }
+    setSavingQuickCust(true);
+    try {
+      const created = await db.entities.Customer.create({
+        name: quickCust.name.trim(),
+        phone: quickCust.phone.trim(),
+        whatsapp: quickCust.phone.trim(),
+        email: quickCust.email.trim(),
+        address: quickCust.address.trim(),
+        total_orders: 0,
+        total_spent: 0,
+        outstanding_balance: 0,
+      });
+
+      setCustomers((prev) => [created, ...prev]);
+      selectCustomer(created.id, [created, ...customers]);
+      setQuickCustomerOpen(false);
+      setQuickCust({ name: '', phone: '', email: '', address: '' });
+      toast({
+        title: 'Customer Added & Selected On Time',
+        description: `${created.name} (${created.phone}) is now active for this bill.`,
+      });
+    } catch (e) {
+      toast({ title: 'Failed to add customer', description: e.message, variant: 'destructive' });
+    } finally {
+      setSavingQuickCust(false);
+    }
+  };
+
   return (
     <div className="mx-auto max-w-7xl space-y-6 p-4 lg:p-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -431,9 +593,24 @@ export default function Sales() {
           <h1 className="text-2xl font-bold tracking-tight">Sales Panel</h1>
           <p className="text-sm text-muted-foreground">Point of Sale (POS) — build bills, generate tax invoices & auto-send via WhatsApp</p>
         </div>
-        <Button onClick={() => setQuickAddOpen(true)} variant="outline" className="gap-2">
-          <Plus className="h-4 w-4" /> Quick Add Product
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            onClick={() => setCustomItemOpen(true)}
+            className="gap-1.5 bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-sm hover:from-violet-700 hover:to-indigo-700"
+          >
+            <Sparkles className="h-4 w-4" /> Add Custom Item
+          </Button>
+          <Button onClick={() => setQuickAddOpen(true)} variant="outline" className="gap-2">
+            <Plus className="h-4 w-4" /> Add Product
+          </Button>
+          <Button
+            onClick={() => setQuickCustomerOpen(true)}
+            variant="outline"
+            className="gap-2 text-sky-600 border-sky-300 dark:border-sky-800 hover:bg-sky-50 dark:hover:bg-sky-950/30"
+          >
+            <Users className="h-4 w-4" /> Add Customer
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-5">
@@ -488,20 +665,45 @@ export default function Sales() {
         {/* Cart & Checkout Panel */}
         <div className="lg:col-span-2">
           <div className="card-shadow sticky top-4 rounded-xl border border-border bg-card p-5">
-            <h3 className="mb-3 flex items-center gap-2 font-semibold text-foreground">
-              <Receipt className="h-4 w-4 text-primary" /> Current Bill
-            </h3>
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="flex items-center gap-2 font-semibold text-foreground">
+                <Receipt className="h-4 w-4 text-primary" /> Current Bill
+              </h3>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setCustomItemOpen(true)}
+                className="h-7 px-2 text-xs text-primary gap-1 hover:bg-primary/10 font-medium"
+              >
+                <Plus className="h-3 w-3" /> Custom Item
+              </Button>
+            </div>
 
             {cart.length === 0 ? (
-              <div className="py-10 text-center text-sm text-muted-foreground">
-                <p>Tap a product on the left to add it to the bill.</p>
+              <div className="py-8 text-center text-sm text-muted-foreground space-y-3">
+                <p>Tap a product on the left or add a custom item/service.</p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setCustomItemOpen(true)}
+                  className="gap-1.5 text-xs text-primary border-primary/30 hover:bg-primary/5"
+                >
+                  <Sparkles className="h-3.5 w-3.5" /> + Custom Item / Service
+                </Button>
               </div>
             ) : (
               <div className="mb-3 max-h-56 space-y-2 overflow-y-auto pr-1">
                 {cart.map((i) => (
                   <div key={i.product_id} className="flex items-center gap-2 rounded-lg bg-muted/40 p-2 text-sm">
                     <div className="min-w-0 flex-1">
-                      <p className="truncate font-medium">{i.name}</p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="truncate font-medium">{i.name}</p>
+                        {i.is_custom && (
+                          <span className="rounded bg-violet-500/10 text-violet-600 dark:text-violet-400 px-1 py-0.2 text-[9px] font-bold">
+                            CUSTOM
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs text-muted-foreground">{formatCurrency(i.price)} each</p>
                     </div>
                     <div className="flex items-center gap-1">
@@ -526,7 +728,18 @@ export default function Sales() {
               <div className="space-y-3 border-t border-border pt-3">
                 {/* Customer Selector */}
                 <div>
-                  <Label className="text-xs font-medium">Select Registered Customer</Label>
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-medium">Select Registered Customer</Label>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setQuickCustomerOpen(true)}
+                      className="h-5 px-1.5 text-[11px] text-primary gap-1 hover:bg-primary/10"
+                    >
+                      <Plus className="h-3 w-3" /> Quick Add
+                    </Button>
+                  </div>
                   <Select value={customer.id} onValueChange={selectCustomer}>
                     <SelectTrigger className="mt-1 h-8 text-xs">
                       <SelectValue placeholder="Walk-in or select customer..." />
@@ -753,8 +966,9 @@ export default function Sales() {
               <tbody>
                 {sales.map((s) => {
                   const isSelected = selectedSales.includes(s.id);
-                  const isSent = s.whatsapp_status === 'sent' || s.bill_sent_whatsapp;
-                  const isFailed = s.whatsapp_status === 'failed';
+                  const isDelivered = s.whatsapp_status === 'Delivered';
+                  const isSubmitted = s.whatsapp_status === 'Submitted' || s.whatsapp_status === 'sent' || s.bill_sent_whatsapp;
+                  const isFailed = s.whatsapp_status === 'Failed' || s.whatsapp_status === 'failed';
 
                   return (
                     <tr
@@ -802,33 +1016,35 @@ export default function Sales() {
                       </td>
                       <td className="py-3 px-3 text-center">
                         <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${
-                          isSent
+                          isDelivered
                             ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                            : isSubmitted
+                            ? 'bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300'
                             : isFailed
                             ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
-                            : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                            : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
                         }`}>
                           <MessageCircle className="h-3 w-3" />
-                          {isSent ? 'Sent' : isFailed ? 'Failed' : 'Pending'}
+                          {isDelivered ? 'Delivered' : isSubmitted ? 'Submitted' : isFailed ? 'Failed' : 'Not Sent'}
                         </span>
-                        {s.sent_to_number && (
+                        {(s.whatsapp_recipient || s.sent_to_number) && (
                           <p className="text-[10px] text-muted-foreground font-mono mt-0.5">
-                            +{s.sent_to_number}
+                            +{s.whatsapp_recipient || s.sent_to_number}
                           </p>
                         )}
                       </td>
                       <td className="py-3 px-3 text-right">
                         <div className="flex items-center justify-end gap-1.5">
-                          {/* Send on WhatsApp Button */}
+                          {/* Send invoice on WhatsApp Button (Requirement 2) */}
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => openWhatsAppModal(s)}
                             className="h-8 gap-1 text-xs text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950 border-emerald-300 dark:border-emerald-800"
-                            title="Send invoice via WhatsApp"
+                            title="Send invoice on WhatsApp"
                           >
                             <MessageCircle className="h-3.5 w-3.5" />
-                            Send on WhatsApp
+                            Send invoice on WhatsApp
                           </Button>
 
                           {/* Direct PDF Download Button */}
@@ -877,21 +1093,31 @@ export default function Sales() {
 
           {waSale && (() => {
             const phoneCheck = formatWhatsAppNumber(waPhone, waCountryCode);
-            const isAlreadySent = waSale.whatsapp_status === 'sent' || waSale.bill_sent_whatsapp;
+            const isAlreadySubmitted = waSale.whatsapp_status === 'Submitted' || waSale.whatsapp_status === 'Delivered' || waSale.whatsapp_status === 'sent' || waSale.bill_sent_whatsapp;
 
             return (
               <div className="space-y-4 py-2">
-                {/* Warning if already sent */}
-                {isAlreadySent && (
+                {/* Requirement 8: Persistent Idempotency Duplicate Warning Banner */}
+                {isAlreadySubmitted && (
                   <div className="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/40 p-3 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2.5">
                     <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
-                    <div>
+                    <div className="space-y-1.5 flex-1">
                       <p className="font-semibold">
-                        Already sent to +{waSale.sent_to_number || waSale.customer_phone}{waSale.sent_at ? ` on ${formatDate(waSale.sent_at)}` : ''}. Send again?
+                        Invoice Already Submitted
                       </p>
-                      <p className="text-[11px] opacity-80 mt-0.5">
-                        A copy was previously sent to this customer. Clicking Send will resend the invoice message and PDF.
+                      <p className="text-[11px] opacity-90">
+                        This invoice was submitted to +{waSale.whatsapp_recipient || waSale.sent_to_number || waSale.customer_phone}{waSale.whatsapp_timestamp || waSale.sent_at ? ` on ${formatDate(waSale.whatsapp_timestamp || waSale.sent_at)}` : ''}.
+                        Duplicate submissions are blocked by persistent idempotency records.
                       </p>
+                      <label className="flex items-center gap-2 cursor-pointer pt-1 font-medium select-none text-[11px] text-amber-900 dark:text-amber-200">
+                        <input
+                          type="checkbox"
+                          checked={waForceRetry}
+                          onChange={(e) => setWaForceRetry(e.target.checked)}
+                          className="h-3.5 w-3.5 rounded border-amber-400 text-amber-600 focus:ring-amber-500"
+                        />
+                        <span>Confirm duplicate resend (bypass duplicate prevention)</span>
+                      </label>
                     </div>
                   </div>
                 )}
@@ -899,7 +1125,7 @@ export default function Sales() {
                 {/* Read-Only Invoice Summary */}
                 <div className="grid grid-cols-2 gap-3 rounded-xl bg-muted/40 p-3 text-xs">
                   <div>
-                    <Label className="text-[11px] text-muted-foreground">Customer Name (read only)</Label>
+                    <Label className="text-[11px] text-muted-foreground">Customer Recipient (read only)</Label>
                     <Input
                       value={waSale.customer_name || 'Walk-in Customer'}
                       readOnly
@@ -923,7 +1149,7 @@ export default function Sales() {
                   </div>
                 </div>
 
-                {/* Phone Number & Country Code Selector */}
+                {/* Requirement 8: Recipient Preview & Phone Selector */}
                 <div className="space-y-2">
                   <div className="grid grid-cols-3 gap-2">
                     <div>
@@ -942,7 +1168,7 @@ export default function Sales() {
                       </Select>
                     </div>
                     <div className="col-span-2">
-                      <Label className="text-xs font-medium">WhatsApp Phone Number *</Label>
+                      <Label className="text-xs font-medium">Recipient Phone Number (digits with country code) *</Label>
                       <Input
                         value={waPhone}
                         onChange={(e) => setWaPhone(e.target.value)}
@@ -955,7 +1181,7 @@ export default function Sales() {
                   {/* Real-time Formatted Number Preview & Validation Feedback */}
                   <div className="rounded-lg bg-muted/50 p-2.5 text-xs space-y-1">
                     <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground text-[11px]">Formatted WhatsApp Number:</span>
+                      <span className="text-muted-foreground text-[11px]">Formatted WhatsApp Recipient:</span>
                       <span className={`font-mono font-bold ${
                         phoneCheck.isValid ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'
                       }`}>
@@ -967,7 +1193,7 @@ export default function Sales() {
                       <div className="flex items-center justify-between text-[11px] text-muted-foreground">
                         <span>Digits: {phoneCheck.formatted.length} (Valid: 8 to 15 digits)</span>
                         <span className={phoneCheck.isValid ? 'text-emerald-600 font-semibold' : 'text-destructive font-semibold'}>
-                          {phoneCheck.isValid ? '✓ Valid format' : '✗ Invalid length'}
+                          {phoneCheck.isValid ? '✓ Valid international format' : '✗ Invalid length'}
                         </span>
                       </div>
                     ) : null}
@@ -975,9 +1201,33 @@ export default function Sales() {
                     {/* Red Error Message if Invalid */}
                     {!phoneCheck.isValid && waPhone.trim() ? (
                       <p className="text-xs font-semibold text-destructive mt-1">
-                        Please enter a valid WhatsApp number
+                        Please enter a valid WhatsApp number with country code (8 to 15 digits)
                       </p>
                     ) : null}
+                  </div>
+
+                  {/* Gateway status & Quick-fill */}
+                  <div className="flex items-center justify-between text-[11px] pt-0.5">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-muted-foreground">Gateway:</span>
+                      <button
+                        type="button"
+                        onClick={() => setWaLinkModalOpen(true)}
+                        className="font-semibold text-primary hover:underline flex items-center gap-1 cursor-pointer"
+                      >
+                        <QrCode className="h-3 w-3" /> Link Device (Scan QR)
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setWaCountryCode('63');
+                        setWaPhone('9562441681');
+                      }}
+                      className="font-semibold text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 underline cursor-pointer"
+                    >
+                      Fill Test WhatsApp (+639562441681)
+                    </button>
                   </div>
 
                   {/* Save to customer record checkbox */}
@@ -988,22 +1238,48 @@ export default function Sales() {
                       onChange={(e) => setWaSaveToCustomer(e.target.checked)}
                       className="h-4 w-4 rounded border-border text-emerald-600 focus:ring-emerald-500"
                     />
-                    Save this number to the customer record
+                    Save this verified number to the customer record
                   </label>
                 </div>
 
-                {/* Optional Message Box */}
+                {/* Requirement 7: PDF Document Attachment Preview */}
+                <div className="rounded-lg border border-border bg-muted/30 p-2.5 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-8 w-8 rounded-lg bg-red-100 dark:bg-red-950/50 flex items-center justify-center text-red-600 font-bold text-[10px]">
+                      PDF
+                    </div>
+                    <div>
+                      <p className="font-semibold text-foreground text-xs font-mono">
+                        invoice-{waSale.sale_id || waSale.id}.pdf
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        application/pdf • Generated server-side
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDownloadPdf(waSale)}
+                    className="h-7 text-xs text-muted-foreground hover:text-foreground gap-1"
+                  >
+                    <Download className="h-3.5 w-3.5" /> View PDF
+                  </Button>
+                </div>
+
+                {/* Caption / Message Box */}
                 <div>
-                  <Label className="text-xs font-medium">Optional Message Box</Label>
+                  <Label className="text-xs font-medium">WhatsApp Caption / Message</Label>
                   <textarea
                     value={waMessage}
                     onChange={(e) => setWaMessage(e.target.value)}
-                    rows={3}
+                    rows={2}
                     className="mt-1 w-full rounded-md border border-input bg-background p-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20"
-                    placeholder="Hello [customer name], your invoice [invoice number] is attached..."
+                    placeholder="Hello [customer name], here is your invoice [invoice-number]. Thank you."
                   />
                   <p className="mt-0.5 text-[10px] text-muted-foreground">
-                    The PDF invoice document will be automatically attached and sent following this message.
+                    Sent via Orbit WhatsApp gateway with PDF document attachment.
                   </p>
                 </div>
 
@@ -1012,22 +1288,27 @@ export default function Sales() {
                   <div className="rounded-lg border border-border bg-card p-3 text-xs space-y-2">
                     <div className="flex items-center justify-between font-semibold">
                       <span className="flex items-center gap-1.5 text-foreground text-xs">
-                        <Clock className="h-3.5 w-3.5 text-muted-foreground" /> Sent History ({waSale.whatsapp_history.length})
+                        <Clock className="h-3.5 w-3.5 text-muted-foreground" /> Dispatch History ({waSale.whatsapp_history.length})
                       </span>
                     </div>
                     <div className="max-h-28 overflow-y-auto space-y-1.5 divide-y divide-border/40">
                       {waSale.whatsapp_history.map((h, idx) => (
                         <div key={idx} className="pt-1.5 first:pt-0 flex items-center justify-between text-[11px]">
                           <div>
-                            <span className="font-mono font-medium text-foreground">+{h.number}</span>
-                            <span className="text-muted-foreground ml-2">{formatDate(h.sent_at)}</span>
+                            <span className="font-mono font-medium text-foreground">+{h.recipient || h.number}</span>
+                            <span className="text-muted-foreground ml-2">{formatDate(h.timestamp || h.sent_at)}</span>
+                            {h.message_id && (
+                              <span className="text-[10px] text-muted-foreground ml-1 font-mono">({h.message_id.slice(-8)})</span>
+                            )}
                           </div>
                           <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-                            h.status === 'sent'
+                            h.status === 'Delivered'
                               ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                              : (h.status === 'Submitted' || h.status === 'sent')
+                              ? 'bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300'
                               : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
                           }`}>
-                            {h.status === 'sent' ? 'Sent' : 'Failed'}
+                            {h.status === 'Delivered' ? 'Delivered' : (h.status === 'Submitted' || h.status === 'sent') ? 'Submitted' : 'Failed'}
                           </span>
                         </div>
                       ))}
@@ -1057,14 +1338,52 @@ export default function Sales() {
               Cancel
             </Button>
             <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                if (!waSale) return;
+                setWaSending(true);
+                try {
+                  const res = await db.functions.invoke('sendSaleBill', {
+                    invoice_id: waSale.sale_id || waSale.id,
+                    sale_id: waSale.id,
+                    phone: waPhone,
+                    country_code: waCountryCode,
+                    custom_message: waMessage,
+                    dev_simulate: true,
+                    sale_draft: waSale,
+                    customer_name: waSale.customer_name,
+                    total: waSale.total,
+                  });
+                  if (res?.success || res?.simulated) {
+                    toast({
+                      title: 'Simulated WhatsApp Invoice Sent',
+                      description: `Simulated dispatch for invoice ${res.invoice_id || waSale.sale_id}. PDF generated successfully.`,
+                    });
+                    setWaModalOpen(false);
+                    await load();
+                  }
+                } catch (e) {
+                  toast({ title: 'Simulate Error', description: e.message, variant: 'destructive' });
+                } finally {
+                  setWaSending(false);
+                }
+              }}
+              disabled={waSending}
+              className="text-xs gap-1 border-dashed text-primary hover:bg-primary/5"
+            >
+              <Sparkles className="h-3.5 w-3.5" /> Simulate Send
+            </Button>
+            <Button
               onClick={handleSendWhatsApp}
-              disabled={!waSale || !formatWhatsAppNumber(waPhone, waCountryCode).isValid || waSending}
+              disabled={!waSale || !formatWhatsAppNumber(waPhone, waCountryCode).isValid || waSending || ((waSale.whatsapp_status === 'Submitted' || waSale.whatsapp_status === 'Delivered' || waSale.whatsapp_status === 'sent' || waSale.bill_sent_whatsapp) && !waForceRetry)}
               className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs shadow-sm"
             >
               {waSending ? (
-                <><RefreshCw className="h-3.5 w-3.5 animate-spin" /> Sending...</>
+                <><RefreshCw className="h-3.5 w-3.5 animate-spin" /> Submitting via Orbit...</>
               ) : (
-                <><Send className="h-3.5 w-3.5" /> Send</>
+                <><Send className="h-3.5 w-3.5" /> {(waSale?.whatsapp_status === 'Submitted' || waSale?.whatsapp_status === 'Delivered' || waSale?.whatsapp_status === 'sent') ? 'Force Resend on WhatsApp' : 'Send invoice on WhatsApp'}</>
               )}
             </Button>
           </DialogFooter>
@@ -1185,18 +1504,20 @@ export default function Sales() {
                     {detailSale.whatsapp_history.map((h, idx) => (
                       <div key={idx} className="pt-1.5 first:pt-0 flex items-center justify-between text-xs">
                         <div>
-                          <span className="font-mono font-medium text-foreground">+{h.number}</span>
-                          <span className="text-muted-foreground ml-2 text-[11px]">{formatDate(h.sent_at)}</span>
+                          <span className="font-mono font-medium text-foreground">+{h.recipient || h.number}</span>
+                          <span className="text-muted-foreground ml-2 text-[11px]">{formatDate(h.timestamp || h.sent_at)}</span>
                           {h.error && (
                             <span className="text-destructive text-[11px] ml-2 font-mono">({h.error})</span>
                           )}
                         </div>
                         <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-                          h.status === 'sent'
+                          h.status === 'Delivered'
                             ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                            : (h.status === 'Submitted' || h.status === 'sent')
+                            ? 'bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300'
                             : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
                         }`}>
-                          {h.status === 'sent' ? 'Sent' : 'Failed'}
+                          {h.status === 'Delivered' ? 'Delivered' : (h.status === 'Submitted' || h.status === 'sent') ? 'Submitted' : 'Failed'}
                         </span>
                       </div>
                     ))}
@@ -1225,7 +1546,7 @@ export default function Sales() {
               className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs"
             >
               <MessageCircle className="h-3.5 w-3.5" />
-              Send on WhatsApp
+              Send invoice on WhatsApp
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1274,7 +1595,7 @@ export default function Sales() {
                 }}
                 className="w-full gap-2 bg-[#25D366] hover:bg-[#1EBE5D] text-white font-medium"
               >
-                <MessageCircle className="h-4 w-4" /> Send on WhatsApp
+                <MessageCircle className="h-4 w-4" /> Send invoice on WhatsApp
               </Button>
 
               {/* Download PDF Button */}
@@ -1352,6 +1673,190 @@ export default function Sales() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* On-Time Custom Line Item Dialog */}
+      <Dialog open={customItemOpen} onOpenChange={setCustomItemOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-violet-600" /> Add Custom Item / Service
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div>
+              <Label className="text-xs">Quick Presets</Label>
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                {[
+                  { name: 'Trousers Alteration', price: '35', cat: 'Alteration / Service' },
+                  { name: 'Urgent Stitching Fee', price: '50', cat: 'Alteration / Service' },
+                  { name: 'Sleeve & Cuff Shortening', price: '25', cat: 'Alteration / Service' },
+                  { name: 'Custom Hand Embroidery', price: '120', cat: 'Tailoring' },
+                  { name: 'Silk Pocket Square', price: '40', cat: 'Accessories' },
+                  { name: 'Express Delivery', price: '30', cat: 'Service' },
+                ].map((preset) => (
+                  <button
+                    key={preset.name}
+                    type="button"
+                    onClick={() =>
+                      setCustomItem({
+                        ...customItem,
+                        name: preset.name,
+                        price: preset.price,
+                        category: preset.cat,
+                      })
+                    }
+                    className="rounded-lg border border-border bg-muted/40 px-2 py-1 text-[11px] text-muted-foreground hover:border-primary/50 hover:bg-muted hover:text-foreground transition-all"
+                  >
+                    + {preset.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-xs">Item / Service Title *</Label>
+              <Input
+                value={customItem.name}
+                onChange={(e) => setCustomItem({ ...customItem, name: e.target.value })}
+                placeholder="e.g. Bespoke Waistcoat Alteration"
+                className="mt-1 h-8 text-xs"
+              />
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <Label className="text-xs">Unit Price (AED) *</Label>
+                <Input
+                  type="number"
+                  value={customItem.price}
+                  onChange={(e) => setCustomItem({ ...customItem, price: e.target.value })}
+                  placeholder="50.00"
+                  className="mt-1 h-8 text-xs font-mono font-semibold"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Quantity</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={customItem.quantity}
+                  onChange={(e) => setCustomItem({ ...customItem, quantity: e.target.value })}
+                  className="mt-1 h-8 text-xs font-mono"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Category</Label>
+                <select
+                  value={customItem.category}
+                  onChange={(e) => setCustomItem({ ...customItem, category: e.target.value })}
+                  className="mt-1 h-8 w-full rounded-md border border-input bg-transparent px-2 text-xs outline-none focus:border-primary"
+                >
+                  <option value="Alteration / Service">Alteration / Service</option>
+                  <option value="Tailoring">Tailoring Custom</option>
+                  <option value="Fabrics">Custom Fabric</option>
+                  <option value="Accessories">Accessories</option>
+                  <option value="Delivery">Delivery / Courier</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 pt-1">
+              <input
+                type="checkbox"
+                id="saveCatalog"
+                checked={customItem.saveToCatalog}
+                onChange={(e) => setCustomItem({ ...customItem, saveToCatalog: e.target.checked })}
+                className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+              />
+              <label htmlFor="saveCatalog" className="text-xs text-muted-foreground cursor-pointer">
+                Also save to Product Catalog for future billing
+              </label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setCustomItemOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleAddCustomItem}
+              disabled={!customItem.name.trim() || !customItem.price}
+              className="bg-primary hover:bg-primary/90 gap-1.5"
+            >
+              <Plus className="h-4 w-4" /> Add to Bill
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* On-Time Quick Add Customer Dialog */}
+      <Dialog open={quickCustomerOpen} onOpenChange={setQuickCustomerOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-sky-600" /> Quick Add Customer On Time
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-1">
+              <Label className="text-xs">Customer Name *</Label>
+              <Input
+                placeholder="Full name"
+                value={quickCust.name}
+                onChange={(e) => setQuickCust({ ...quickCust, name: e.target.value })}
+                className="h-8 text-xs"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Phone (WhatsApp) *</Label>
+              <Input
+                placeholder="+971 50..."
+                value={quickCust.phone}
+                onChange={(e) => setQuickCust({ ...quickCust, phone: e.target.value })}
+                className="h-8 text-xs font-mono"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Email Address (optional)</Label>
+              <Input
+                type="email"
+                placeholder="client@example.com"
+                value={quickCust.email}
+                onChange={(e) => setQuickCust({ ...quickCust, email: e.target.value })}
+                className="h-8 text-xs"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Address / Area (optional)</Label>
+              <Input
+                placeholder="e.g. Al Wasl, Dubai"
+                value={quickCust.address}
+                onChange={(e) => setQuickCust({ ...quickCust, address: e.target.value })}
+                className="h-8 text-xs"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setQuickCustomerOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleQuickAddCustomer}
+              disabled={savingQuickCust || !quickCust.name.trim() || !quickCust.phone.trim()}
+              className="bg-primary hover:bg-primary/90"
+            >
+              {savingQuickCust ? 'Saving...' : 'Save & Select'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* WhatsApp Link / QR Code Modal */}
+      <WhatsAppLinkModal
+        open={waLinkModalOpen}
+        onOpenChange={setWaLinkModalOpen}
+      />
     </div>
   );
 }

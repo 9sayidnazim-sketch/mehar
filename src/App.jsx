@@ -62,6 +62,12 @@ const AuthenticatedApp = () => {
           <Route path="/tailors" element={<Tailors />} />
           <Route path="/payments" element={<Payments />} />
           <Route path="/sales" element={<Sales />} />
+          <Route path="/invoices" element={<Sales />} />
+          <Route path="/invoicing" element={<Sales />} />
+          <Route path="/invoice" element={<Sales />} />
+          <Route path="/whatsapp-invoice" element={<Sales />} />
+          <Route path="/whatsapp-invoicing" element={<Sales />} />
+          <Route path="/whatsapp" element={<Sales />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/online-orders" element={<OnlineOrders />} />
           <Route path="/accounts" element={<Accounts />} />

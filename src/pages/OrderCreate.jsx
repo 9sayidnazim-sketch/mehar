@@ -26,8 +26,18 @@ export default function OrderCreate() {
   const [saving, setSaving] = useState(false);
   const [showCustomerDialog, setShowCustomerDialog] = useState(false);
   const [customerSearch, setCustomerSearch] = useState('');
-  const [newCust, setNewCust] = useState({ name: '', phone: '', email: '' });
+  const [newCust, setNewCust] = useState({ name: '', phone: '', email: '', whatsapp: '', address: '' });
   const [creatingCust, setCreatingCust] = useState(false);
+
+  // On-time tailor addition
+  const [showTailorDialog, setShowTailorDialog] = useState(false);
+  const [newTailor, setNewTailor] = useState({ name: '', phone: '', specialization: 'Master Cutter', rate: '45' });
+  const [creatingTailor, setCreatingTailor] = useState(false);
+
+  // On-time custom measurement fields
+  const [customMeasurementFields, setCustomMeasurementFields] = useState([]);
+  const [showCustomFieldDialog, setShowCustomFieldDialog] = useState(false);
+  const [newCustomField, setNewCustomField] = useState({ name: '', unit: 'cm' });
 
   const [form, setForm] = useState({
     customer_id: '', customer_name: '',
@@ -37,6 +47,7 @@ export default function OrderCreate() {
     fabric_type: '', fabric_code: '', fabric_quantity: 0, fabric_cost: 0, supplier: '',
     style_notes: '', accessories: '',
     tailor_id: '', tailor_name: '', tailor_rate: 0,
+    extra_charges: 0, extra_charges_note: '',
     markup_percent: 30, discount: 0, discount_type: 'percent', tax_percent: 5,
     payment_method: 'Cash', amount_paid: 0, delivery_method: 'Pickup',
     remarks: '',
@@ -62,6 +73,14 @@ export default function OrderCreate() {
         }
       } catch (e) { console.error(e); }
     })();
+
+    const handleSync = (e) => {
+      const ent = e.detail?.entity;
+      if (ent === 'Customer') db.entities.Customer.list('-created_date', 100).then(setCustomers);
+      if (ent === 'Tailor') db.entities.Tailor.filter({ active: true }, '-created_date', 50).then(setTailors);
+    };
+    window.addEventListener('thredo-data-updated', handleSync);
+    return () => window.removeEventListener('thredo-data-updated', handleSync);
   }, []);
 
   const steps = [
@@ -78,7 +97,8 @@ export default function OrderCreate() {
   const calcTotal = () => {
     const fabric = (form.fabric_quantity || 0) * (form.fabric_cost || 0);
     const accessoriesCost = 0;
-    const base = fabric + accessoriesCost + (form.tailor_rate || 0);
+    const extra = form.extra_charges || 0;
+    const base = fabric + accessoriesCost + (form.tailor_rate || 0) + extra;
     const markup = base * (form.markup_percent || 0) / 100;
     const subtotal = base + markup;
     const discountVal = form.discount_type === 'percent'
@@ -87,7 +107,7 @@ export default function OrderCreate() {
     const afterDiscount = subtotal - discountVal;
     const tax = afterDiscount * (form.tax_percent || 0) / 100;
     const total = afterDiscount + tax;
-    return { fabric, base, markup, subtotal, discountVal, afterDiscount, tax, total };
+    return { fabric, base, markup, subtotal, discountVal, afterDiscount, tax, total, extra };
   };
 
   const calc = calcTotal();
@@ -99,18 +119,62 @@ export default function OrderCreate() {
       const created = await db.entities.Customer.create({
         name: newCust.name.trim(),
         phone: newCust.phone.trim(),
+        whatsapp: newCust.whatsapp.trim() || newCust.phone.trim(),
         email: newCust.email.trim(),
+        address: newCust.address.trim(),
         notes: 'Created during order setup',
       });
       setCustomers((prev) => [created, ...prev]);
       setForm((f) => ({ ...f, customer_id: created.id, customer_name: created.name }));
       setShowCustomerDialog(false);
-      setNewCust({ name: '', phone: '', email: '' });
+      setNewCust({ name: '', phone: '', email: '', whatsapp: '', address: '' });
     } catch (err) {
       console.error(err);
     } finally {
       setCreatingCust(false);
     }
+  };
+
+  const handleQuickCreateTailor = async () => {
+    if (!newTailor.name.trim()) return;
+    setCreatingTailor(true);
+    try {
+      const rateVal = parseFloat(newTailor.rate) || 0;
+      const created = await db.entities.Tailor.create({
+        name: newTailor.name.trim(),
+        phone: newTailor.phone.trim(),
+        specialization: newTailor.specialization,
+        rate: rateVal,
+        active: true,
+      });
+      setTailors((prev) => [created, ...prev]);
+      setForm((f) => ({
+        ...f,
+        tailor_id: created.id,
+        tailor_name: created.name,
+        tailor_rate: rateVal,
+      }));
+      setShowTailorDialog(false);
+      setNewTailor({ name: '', phone: '', specialization: 'Master Cutter', rate: '45' });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setCreatingTailor(false);
+    }
+  };
+
+  const handleAddCustomMeasurementField = () => {
+    const fName = newCustomField.name.trim();
+    if (!fName) return;
+    if (!customMeasurementFields.some((f) => f.name.toLowerCase() === fName.toLowerCase())) {
+      setCustomMeasurementFields((prev) => [...prev, { name: fName, unit: newCustomField.unit || 'cm' }]);
+      setForm((prev) => ({
+        ...prev,
+        measurement_values: { ...prev.measurement_values, [fName]: '' },
+      }));
+    }
+    setShowCustomFieldDialog(false);
+    setNewCustomField({ name: '', unit: 'cm' });
   };
 
   const submit = async () => {
@@ -322,7 +386,18 @@ export default function OrderCreate() {
               </Select>
             </div>
             <div className="col-span-2 space-y-1.5">
-              <Label>Assign Tailor (optional)</Label>
+              <div className="flex items-center justify-between">
+                <Label>Assign Tailor (optional)</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowTailorDialog(true)}
+                  className="h-6 px-1.5 text-xs text-primary gap-1 hover:bg-primary/10"
+                >
+                  <Plus className="h-3 w-3" /> Add Tailor
+                </Button>
+              </div>
               <Select value={form.tailor_id} onValueChange={(v) => {
                 const t = tailors.find((x) => x.id === v);
                 setForm({ ...form, tailor_id: v, tailor_name: t?.name || '', tailor_rate: t?.rate || 0 });
@@ -340,10 +415,21 @@ export default function OrderCreate() {
 
         {step === 3 && (
           <div className="space-y-4">
-            <h3 className="font-semibold">Measurement Template</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold">Measurement Template</h3>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowCustomFieldDialog(true)}
+                className="h-7 px-2 text-xs text-primary border-primary/30 gap-1 hover:bg-primary/5"
+              >
+                <Plus className="h-3.5 w-3.5" /> Add Custom Measurement
+              </Button>
+            </div>
             <Select value={form.template_id} onValueChange={(v) => {
               const t = templates.find((x) => x.id === v);
-              const vals = {};
+              const vals = { ...form.measurement_values };
               t?.fields?.forEach((f) => { vals[f.field_name] = f.default_value || ''; });
               setForm({ ...form, template_id: v, template_name: t?.name || '', measurement_values: vals });
             }}>
@@ -354,6 +440,8 @@ export default function OrderCreate() {
                 ))}
               </SelectContent>
             </Select>
+
+            {/* Standard Template Fields */}
             {selectedTemplate?.fields?.length > 0 && (
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {selectedTemplate.fields.map((f, i) => (
@@ -372,12 +460,51 @@ export default function OrderCreate() {
                 ))}
               </div>
             )}
+
+            {/* Custom On-the-fly Measurement Fields */}
+            {customMeasurementFields.length > 0 && (
+              <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-2">
+                <p className="text-xs font-semibold text-primary">Custom Added Measurements</p>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {customMeasurementFields.map((cf, i) => (
+                    <div key={i} className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-medium">{cf.name}</Label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCustomMeasurementFields(prev => prev.filter((_, idx) => idx !== i));
+                            const updatedVals = { ...form.measurement_values };
+                            delete updatedVals[cf.name];
+                            setForm({ ...form, measurement_values: updatedVals });
+                          }}
+                          className="text-[10px] text-muted-foreground hover:text-destructive"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      <Input
+                        value={form.measurement_values[cf.name] || ''}
+                        onChange={(e) => setForm({
+                          ...form,
+                          measurement_values: { ...form.measurement_values, [cf.name]: e.target.value }
+                        })}
+                        placeholder={cf.unit || 'cm'}
+                        className="h-9 bg-card"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="space-y-1.5">
               <Label>Measurement Notes</Label>
               <Textarea value={form.remarks} onChange={(e) => setForm({ ...form, remarks: e.target.value })} placeholder="Any special fitting notes..." />
             </div>
           </div>
         )}
+
 
         {step === 4 && (
           <div className="space-y-4">
@@ -404,16 +531,48 @@ export default function OrderCreate() {
                 <Input value={form.supplier} onChange={(e) => setForm({ ...form, supplier: e.target.value })} />
               </div>
             </div>
-            <div className="space-y-1.5 border-t border-border pt-4">
-              <Label>Style Notes & Accessories</Label>
-              <Textarea value={form.style_notes} onChange={(e) => setForm({ ...form, style_notes: e.target.value })} placeholder="Collar type, cuff, special instructions..." />
+            <div className="space-y-2 border-t border-border pt-4">
+              <div className="flex items-center justify-between">
+                <Label>Style Notes & Custom Specifications</Label>
+                <span className="text-[11px] text-muted-foreground">Tap tag to append on time</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5 pb-1">
+                {[
+                  'French Cuffs',
+                  'Mandarin Collar',
+                  'Double Vent',
+                  'Concealed Placket',
+                  'Contrast Buttonholes',
+                  'Hand Monogram on Cuff',
+                  'Side Slits',
+                  'Extra Inner Pocket',
+                  'Silk Lining',
+                ].map((tag) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => {
+                      const cur = form.style_notes ? `${form.style_notes}, ${tag}` : tag;
+                      setForm({ ...form, style_notes: cur });
+                    }}
+                    className="rounded-md border border-border bg-muted/40 px-2 py-0.5 text-xs text-muted-foreground hover:border-primary/40 hover:bg-muted hover:text-foreground transition-all"
+                  >
+                    + {tag}
+                  </button>
+                ))}
+              </div>
+              <Textarea
+                value={form.style_notes}
+                onChange={(e) => setForm({ ...form, style_notes: e.target.value })}
+                placeholder="Collar type, cuff, special instructions..."
+              />
             </div>
           </div>
         )}
 
         {step === 5 && (
           <div className="space-y-4">
-            <h3 className="font-semibold flex items-center gap-2"><DollarSign className="h-4 w-4" /> Pricing</h3>
+            <h3 className="font-semibold flex items-center gap-2"><DollarSign className="h-4 w-4" /> Pricing & Custom Charges</h3>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label>Tailor Rate</Label>
@@ -423,6 +582,26 @@ export default function OrderCreate() {
                 <Label>Markup %</Label>
                 <Input type="number" value={form.markup_percent} onChange={(e) => setForm({ ...form, markup_percent: parseFloat(e.target.value) || 0 })} />
               </div>
+
+              {/* On-Time Custom Extra Charge */}
+              <div className="space-y-1.5">
+                <Label>Custom Extra Charges (AED)</Label>
+                <Input
+                  type="number"
+                  placeholder="0.00"
+                  value={form.extra_charges || ''}
+                  onChange={(e) => setForm({ ...form, extra_charges: parseFloat(e.target.value) || 0 })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Extra Charge Reason / Note</Label>
+                <Input
+                  placeholder="e.g. 24h Rush Stitching, Zari Work"
+                  value={form.extra_charges_note || ''}
+                  onChange={(e) => setForm({ ...form, extra_charges_note: e.target.value })}
+                />
+              </div>
+
               <div className="space-y-1.5">
                 <Label>Discount</Label>
                 <Input type="number" value={form.discount} onChange={(e) => setForm({ ...form, discount: parseFloat(e.target.value) || 0 })} />
@@ -473,6 +652,12 @@ export default function OrderCreate() {
             <div className="rounded-lg border border-border bg-muted/30 p-4 text-sm">
               <div className="flex justify-between py-1"><span className="text-muted-foreground">Fabric Cost</span><span>{formatCurrency(calc.fabric)}</span></div>
               <div className="flex justify-between py-1"><span className="text-muted-foreground">Tailor Rate</span><span>{formatCurrency(form.tailor_rate)}</span></div>
+              {form.extra_charges > 0 && (
+                <div className="flex justify-between py-1 text-primary">
+                  <span>Extra Charges ({form.extra_charges_note || 'Custom'})</span>
+                  <span>+{formatCurrency(form.extra_charges)}</span>
+                </div>
+              )}
               <div className="flex justify-between py-1"><span className="text-muted-foreground">Markup ({form.markup_percent}%)</span><span>+{formatCurrency(calc.markup)}</span></div>
               <div className="flex justify-between py-1"><span className="text-muted-foreground">Discount</span><span>-{formatCurrency(calc.discountVal)}</span></div>
               <div className="flex justify-between py-1"><span className="text-muted-foreground">Tax ({form.tax_percent}%)</span><span>+{formatCurrency(calc.tax)}</span></div>
@@ -487,6 +672,7 @@ export default function OrderCreate() {
           </div>
         )}
 
+
         {step === 6 && (
           <div className="space-y-3">
             <h3 className="font-semibold">Review & Confirm</h3>
@@ -497,6 +683,9 @@ export default function OrderCreate() {
               <ReviewRow label="Template" value={form.template_name || '—'} />
               <ReviewRow label="Fabric" value={form.fabric_type ? `${form.fabric_type} (${form.fabric_quantity}m)` : '—'} />
               <ReviewRow label="Tailor" value={form.tailor_name || 'Unassigned'} />
+              {form.extra_charges > 0 && (
+                <ReviewRow label={`Extra Charges (${form.extra_charges_note || 'Custom'})`} value={`+${formatCurrency(form.extra_charges)}`} />
+              )}
               <ReviewRow label="Total Amount" value={formatCurrency(calc.total)} highlight />
               <ReviewRow label="Advance" value={formatCurrency(form.amount_paid)} />
               <ReviewRow label="Balance Due" value={formatCurrency(calc.total - (form.amount_paid || 0))} />
@@ -519,6 +708,7 @@ export default function OrderCreate() {
           </Button>
         )}
       </div>
+
       {/* Quick Add Customer Modal */}
       <Dialog open={showCustomerDialog} onOpenChange={setShowCustomerDialog}>
         <DialogContent className="max-w-md">
@@ -563,9 +753,128 @@ export default function OrderCreate() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Quick Add Tailor Modal */}
+      <Dialog open={showTailorDialog} onOpenChange={setShowTailorDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Tailor On Time</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-1">
+              <Label className="text-xs">Tailor Name *</Label>
+              <Input
+                placeholder="e.g. Master Farooq"
+                value={newTailor.name}
+                onChange={(e) => setNewTailor({ ...newTailor, name: e.target.value })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs">Phone</Label>
+                <Input
+                  placeholder="+971 50..."
+                  value={newTailor.phone}
+                  onChange={(e) => setNewTailor({ ...newTailor, phone: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Rate (AED)</Label>
+                <Input
+                  type="number"
+                  placeholder="45"
+                  value={newTailor.rate}
+                  onChange={(e) => setNewTailor({ ...newTailor, rate: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Specialization</Label>
+              <select
+                value={newTailor.specialization}
+                onChange={(e) => setNewTailor({ ...newTailor, specialization: e.target.value })}
+                className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-xs outline-none focus:border-primary"
+              >
+                <option value="Master Cutter">Master Cutter</option>
+                <option value="Suits & Blazers">Suits & Blazers</option>
+                <option value="Traditional & Kandora">Traditional & Kandora</option>
+                <option value="Shirts & Trousers">Shirts & Trousers</option>
+                <option value="Alterations & Fitting">Alterations & Fitting</option>
+                <option value="Embroidery">Embroidery</option>
+              </select>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setShowTailorDialog(false)}>Cancel</Button>
+            <Button
+              onClick={handleQuickCreateTailor}
+              disabled={creatingTailor || !newTailor.name.trim()}
+              className="bg-primary hover:bg-primary/90"
+            >
+              {creatingTailor ? 'Adding...' : 'Add & Assign'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Custom Measurement Field Modal */}
+      <Dialog open={showCustomFieldDialog} onOpenChange={setShowCustomFieldDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Add Custom Measurement Field</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div>
+              <Label className="text-xs">Quick Suggestions</Label>
+              <div className="mt-1 flex flex-wrap gap-1">
+                {['Armhole', 'Bicep', 'Calf', 'Thigh', 'Cross Back', 'Crotch', 'Ankle Opening'].map((sug) => (
+                  <button
+                    key={sug}
+                    type="button"
+                    onClick={() => setNewCustomField({ ...newCustomField, name: sug })}
+                    className="rounded border border-border bg-muted/40 px-1.5 py-0.5 text-[10px] text-muted-foreground hover:bg-muted hover:text-foreground"
+                  >
+                    + {sug}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Measurement Name *</Label>
+              <Input
+                placeholder="e.g. Bicep, Cross Back"
+                value={newCustomField.name}
+                onChange={(e) => setNewCustomField({ ...newCustomField, name: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Unit</Label>
+              <select
+                value={newCustomField.unit}
+                onChange={(e) => setNewCustomField({ ...newCustomField, unit: e.target.value })}
+                className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-xs outline-none focus:border-primary"
+              >
+                <option value="cm">Centimeters (cm)</option>
+                <option value="inch">Inches (in)</option>
+              </select>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setShowCustomFieldDialog(false)}>Cancel</Button>
+            <Button
+              onClick={handleAddCustomMeasurementField}
+              disabled={!newCustomField.name.trim()}
+              className="bg-primary hover:bg-primary/90"
+            >
+              Add Field
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
 
 function ReviewRow({ label, value, highlight }) {
   return (

@@ -1,6 +1,6 @@
 import { db } from '@/api/base44Client';
 import React, { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
 import StatusBadge from '@/components/StatusBadge';
@@ -25,6 +25,11 @@ export default function Customers() {
 
   useEffect(() => {
     loadCustomers();
+    const handleSync = (e) => {
+      if (e.detail?.entity === 'Customer') loadCustomers();
+    };
+    window.addEventListener('thredo-data-updated', handleSync);
+    return () => window.removeEventListener('thredo-data-updated', handleSync);
   }, []);
 
   useEffect(() => {
@@ -138,17 +143,31 @@ export default function Customers() {
 }
 
 function AddCustomerDialog({ open, onClose, onCreated }) {
-  const [form, setForm] = useState({ name: '', phone: '', email: '', whatsapp: '', address: '', city: '', notes: '' });
+  const navigate = useNavigate();
+  const [form, setForm] = useState({ name: '', phone: '', email: '', whatsapp: '', address: '', city: 'Dubai', notes: '' });
   const [saving, setSaving] = useState(false);
 
-  const submit = async () => {
+  const submit = async (andStartOrder = false) => {
     if (!form.name || !form.phone) return;
     setSaving(true);
     try {
-      await db.entities.Customer.create({ ...form, status: 'active', total_orders: 0, total_spent: 0, outstanding_balance: 0 });
-      setForm({ name: '', phone: '', email: '', whatsapp: '', address: '', city: '', notes: '' });
+      const created = await db.entities.Customer.create({
+        ...form,
+        whatsapp: form.whatsapp || form.phone,
+        status: 'active',
+        total_orders: 0,
+        total_spent: 0,
+        outstanding_balance: 0
+      });
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('thredo-data-updated', { detail: { entity: 'Customer', item: created } }));
+      }
+      setForm({ name: '', phone: '', email: '', whatsapp: '', address: '', city: 'Dubai', notes: '' });
       onCreated();
       onClose();
+      if (andStartOrder) {
+        navigate(`/orders/new?customer=${created.id}`);
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -192,9 +211,17 @@ function AddCustomerDialog({ open, onClose, onCreated }) {
             <Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
           </div>
         </div>
-        <DialogFooter>
+        <DialogFooter className="flex flex-col sm:flex-row gap-2">
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={submit} disabled={saving || !form.name || !form.phone} className="bg-primary hover:bg-primary/90">
+          <Button
+            variant="outline"
+            onClick={() => submit(true)}
+            disabled={saving || !form.name || !form.phone}
+            className="text-primary border-primary/30 hover:bg-primary/5"
+          >
+            Save & Start Order →
+          </Button>
+          <Button onClick={() => submit(false)} disabled={saving || !form.name || !form.phone} className="bg-primary hover:bg-primary/90">
             {saving ? 'Saving...' : 'Save Customer'}
           </Button>
         </DialogFooter>

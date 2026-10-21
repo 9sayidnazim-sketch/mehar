@@ -10,6 +10,7 @@ import {
   ArrowLeft, User, Ruler, Shirt, DollarSign,
   MessageCircle, Mail, Printer, Check
 } from 'lucide-react';
+import WhatsAppLinkModal from '@/components/WhatsAppLinkModal';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
 import {
@@ -26,6 +27,7 @@ export default function OrderDetail() {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const [sendingPayment, setSendingPayment] = useState(null);
+  const [waLinkModalOpen, setWaLinkModalOpen] = useState(false);
 
   useEffect(() => {
     load();
@@ -48,15 +50,48 @@ export default function OrderDetail() {
 
   const sendInvoice = async (paymentId) => {
     setSendingPayment(paymentId);
+    const targetPayment = payments.find(p => p.id === paymentId) || { id: paymentId };
+    const recipientPhone = customer?.whatsapp || customer?.phone || order?.customer_phone || '';
     try {
-      const res = await db.functions.invoke('sendWhatsAppInvoice', { payment_id: paymentId });
-      if (res?.skipped) {
+      const res = await db.functions.invoke('sendWhatsAppInvoice', {
+        payment_id: paymentId,
+        order_id: order?.id,
+        order_ref: order?.order_id,
+        customer_id: order?.customer_id,
+        customer_name: order?.customer_name,
+        phone: recipientPhone,
+        payment_draft: targetPayment,
+        order_draft: order,
+        customer_draft: customer,
+      });
+      if (res?.timed_out || res?.error?.includes('Result unknown')) {
+        toast({
+          title: 'Result unknown—check before retrying',
+          description: 'The WhatsApp gateway request timed out. Do not automatically resend before checking.',
+          variant: 'destructive',
+          duration: 8000
+        });
+      } else if (res?.skipped) {
         toast({ title: 'Refund payment — no invoice sent' });
+      } else if (res?.success || res?.message_id) {
+        toast({ title: 'Invoice Submitted', description: `PDF invoice submitted to WhatsApp (+${res?.to || order.customer_name}). Status: Submitted.` });
       } else {
-        toast({ title: 'Invoice sent on WhatsApp', description: `PDF invoice delivered to ${order.customer_name}.` });
+        if (res?.not_logged_in || res?.error?.includes('not connected or logged in')) {
+          setWaLinkModalOpen(true);
+        }
+        toast({ title: 'WhatsApp dispatch failed', description: res?.error || 'Failed to dispatch via Orbit', variant: 'destructive' });
       }
     } catch (e) {
-      toast({ title: 'WhatsApp send failed', description: `${e.message} — automatic WhatsApp sending requires the plan upgrade that enables it.`, variant: 'destructive' });
+      if (e.name === 'AbortError' || e.message?.includes('timeout') || e.message?.includes('Result unknown')) {
+        toast({
+          title: 'Result unknown—check before retrying',
+          description: 'The WhatsApp gateway request timed out.',
+          variant: 'destructive',
+          duration: 8000
+        });
+      } else {
+        toast({ title: 'WhatsApp send failed', description: e.message, variant: 'destructive' });
+      }
     } finally {
       setSendingPayment(null);
     }
@@ -244,7 +279,7 @@ export default function OrderDetail() {
                         className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 hover:underline disabled:opacity-50"
                       >
                         <MessageCircle className="h-3.5 w-3.5" />
-                        {sendingPayment === p.id ? 'Sending…' : 'Send PDF'}
+                        {sendingPayment === p.id ? 'Submitting…' : 'Send invoice on WhatsApp'}
                       </button>
                     ) : <span className="text-xs text-muted-foreground">—</span>}
                   </td>
@@ -261,6 +296,11 @@ export default function OrderDetail() {
           <p className="text-sm text-muted-foreground">{order.remarks}</p>
         </div>
       )}
+
+      <WhatsAppLinkModal
+        open={waLinkModalOpen}
+        onOpenChange={setWaLinkModalOpen}
+      />
     </div>
   );
 }

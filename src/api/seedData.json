@@ -1,0 +1,445 @@
+{
+  "Company": [
+    {
+      "id": "comp-thredo",
+      "name": "THREDO Tailoring & POS",
+      "legal_name": "THREDO Garments & Tailoring LLC",
+      "registration_number": "DXB-984210",
+      "address": "Al Wasl Road, Al Satwa, Dubai, United Arab Emirates",
+      "phone": "+971 52 872 4090",
+      "email": "contact@octapus.ae",
+      "whatsapp": "+971 52 872 4090",
+      "tax_number": "100234857200003",
+      "currency": "AED",
+      "timezone": "Asia/Dubai",
+      "logo_url": "",
+      "is_default": true,
+      "created_date": "2026-10-15T10:59:36.174Z"
+    }
+  ],
+  "Product": [
+    {
+      "id": "prod-1",
+      "name": "Japanese Crepe Kandora Fabric",
+      "sku": "FAB-JP01",
+      "category": "Fabrics",
+      "price": 180,
+      "is_active": true,
+      "stock": 45,
+      "unit": "meters",
+      "created_date": "2026-10-01T10:00:00Z"
+    },
+    {
+      "id": "prod-2",
+      "name": "Italian Super 150s Wool Fabric",
+      "sku": "FAB-IT150",
+      "category": "Fabrics",
+      "price": 420,
+      "is_active": true,
+      "stock": 30,
+      "unit": "meters",
+      "created_date": "2026-10-01T10:00:00Z"
+    },
+    {
+      "id": "prod-3",
+      "name": "Pure Egyptian Giza Cotton",
+      "sku": "FAB-EG90",
+      "category": "Fabrics",
+      "price": 210,
+      "is_active": true,
+      "stock": 60,
+      "unit": "meters",
+      "created_date": "2026-10-01T10:00:00Z"
+    },
+    {
+      "id": "prod-4",
+      "name": "Bespoke 2-Piece Suit Tailoring",
+      "sku": "TL-SUIT2P",
+      "category": "Tailoring",
+      "price": 850,
+      "is_active": true,
+      "stock": 999,
+      "unit": "piece",
+      "created_date": "2026-10-01T10:00:00Z"
+    },
+    {
+      "id": "prod-5",
+      "name": "Traditional Emirati Kandora Stitching",
+      "sku": "TL-KAND",
+      "category": "Tailoring",
+      "price": 220,
+      "is_active": true,
+      "stock": 999,
+      "unit": "piece",
+      "created_date": "2026-10-01T10:00:00Z"
+    },
+    {
+      "id": "prod-6",
+      "name": "Custom Fitted Formal Shirt",
+      "sku": "TL-SHIRT",
+      "category": "Tailoring",
+      "price": 160,
+      "is_active": true,
+      "stock": 999,
+      "unit": "piece",
+      "created_date": "2026-10-01T10:00:00Z"
+    },
+    {
+      "id": "prod-7",
+      "name": "Pure Silk Tie — Midnight Navy",
+      "sku": "ACC-TIE01",
+      "category": "Accessories",
+      "price": 110,
+      "is_active": true,
+      "stock": 25,
+      "unit": "piece",
+      "created_date": "2026-10-01T10:00:00Z"
+    },
+    {
+      "id": "prod-8",
+      "name": "Mother of Pearl Cufflinks Set",
+      "sku": "ACC-CUFF01",
+      "category": "Accessories",
+      "price": 150,
+      "is_active": true,
+      "stock": 18,
+      "unit": "set",
+      "created_date": "2026-10-01T10:00:00Z"
+    }
+  ],
+  "Customer": [
+    {
+      "id": "cust-1",
+      "name": "Rashid Al Nuaimi",
+      "phone": "+971 50 123 4567",
+      "whatsapp": "+971 50 123 4567",
+      "email": "rashid@example.com",
+      "address": "Villa 14, Jumeirah 2",
+      "city": "Dubai",
+      "total_orders": 4,
+      "total_spent": 3420,
+      "outstanding_balance": 0,
+      "status": "active",
+      "created_date": "2026-09-15T08:00:00Z"
+    },
+    {
+      "id": "cust-2",
+      "name": "Alex Hunter",
+      "phone": "+971 52 987 6543",
+      "whatsapp": "+971 52 987 6543",
+      "email": "alex.hunter@example.com",
+      "address": "Downtown Boulevard, Apt 1802",
+      "city": "Dubai",
+      "total_orders": 2,
+      "total_spent": 1780,
+      "outstanding_balance": 350,
+      "status": "active",
+      "created_date": "2026-09-20T09:30:00Z"
+    },
+    {
+      "id": "cust-3",
+      "name": "Salem Al Mansoori",
+      "phone": "+971 55 432 1098",
+      "whatsapp": "+971 55 432 1098",
+      "email": "salem@example.com",
+      "address": "Al Bateen",
+      "city": "Abu Dhabi",
+      "total_orders": 5,
+      "total_spent": 4900,
+      "outstanding_balance": 0,
+      "status": "active",
+      "created_date": "2026-09-25T11:00:00Z"
+    },
+    {
+      "id": "cust-4",
+      "name": "Fatima Al Zahra",
+      "phone": "+971 50 765 4321",
+      "whatsapp": "+971 50 765 4321",
+      "email": "fatima@example.com",
+      "address": "Al Majaz 3",
+      "city": "Sharjah",
+      "total_orders": 1,
+      "total_spent": 650,
+      "outstanding_balance": 0,
+      "status": "active",
+      "created_date": "2026-10-02T14:15:00Z"
+    }
+  ],
+  "Tailor": [
+    {
+      "id": "tl-1",
+      "name": "Master Ahmed Al-Fayed",
+      "specialty": "Cutting & Master Pattern",
+      "phone": "+971 50 111 2233",
+      "email": "ahmed@thredo.ae",
+      "total_orders_assigned": 18,
+      "completed_orders": 16,
+      "tailor_rate": 140,
+      "active": true,
+      "created_date": "2026-08-01T08:00:00Z"
+    },
+    {
+      "id": "tl-2",
+      "name": "Tariq Mahmood",
+      "specialty": "Kandora & Collar Finishing",
+      "phone": "+971 50 222 3344",
+      "email": "tariq@thredo.ae",
+      "total_orders_assigned": 24,
+      "completed_orders": 22,
+      "tailor_rate": 90,
+      "active": true,
+      "created_date": "2026-08-05T08:00:00Z"
+    },
+    {
+      "id": "tl-3",
+      "name": "Farhan Ali",
+      "specialty": "Bespoke Suits & Blazers",
+      "phone": "+971 50 333 4455",
+      "email": "farhan@thredo.ae",
+      "total_orders_assigned": 15,
+      "completed_orders": 13,
+      "tailor_rate": 180,
+      "active": true,
+      "created_date": "2026-08-10T08:00:00Z"
+    }
+  ],
+  "MeasurementTemplate": [
+    {
+      "id": "tmpl-1",
+      "name": "Emirati Kandora",
+      "garment_type": "Kandora",
+      "is_active": true,
+      "fields": [
+        { "name": "Length", "default_unit": "in", "required": true },
+        { "name": "Shoulder", "default_unit": "in", "required": true },
+        { "name": "Sleeves", "default_unit": "in", "required": true },
+        { "name": "Neck / Collar", "default_unit": "in", "required": true },
+        { "name": "Chest", "default_unit": "in", "required": true },
+        { "name": "Waist", "default_unit": "in", "required": false },
+        { "name": "Bottom Flare", "default_unit": "in", "required": false }
+      ],
+      "created_date": "2026-08-01T08:00:00Z"
+    },
+    {
+      "id": "tmpl-2",
+      "name": "Bespoke 2-Piece Suit",
+      "garment_type": "Suit",
+      "is_active": true,
+      "fields": [
+        { "name": "Jacket Length", "default_unit": "in", "required": true },
+        { "name": "Chest", "default_unit": "in", "required": true },
+        { "name": "Waist", "default_unit": "in", "required": true },
+        { "name": "Shoulder Width", "default_unit": "in", "required": true },
+        { "name": "Sleeve Length", "default_unit": "in", "required": true },
+        { "name": "Trouser Length", "default_unit": "in", "required": true },
+        { "name": "Inseam", "default_unit": "in", "required": true },
+        { "name": "Thigh Width", "default_unit": "in", "required": false }
+      ],
+      "created_date": "2026-08-01T08:00:00Z"
+    },
+    {
+      "id": "tmpl-3",
+      "name": "Formal Shirt",
+      "garment_type": "Shirt",
+      "is_active": true,
+      "fields": [
+        { "name": "Collar", "default_unit": "in", "required": true },
+        { "name": "Chest", "default_unit": "in", "required": true },
+        { "name": "Waist", "default_unit": "in", "required": true },
+        { "name": "Shirt Length", "default_unit": "in", "required": true },
+        { "name": "Sleeve", "default_unit": "in", "required": true },
+        { "name": "Cuff", "default_unit": "in", "required": false }
+      ],
+      "created_date": "2026-08-01T08:00:00Z"
+    }
+  ],
+  "Sale": [
+    {
+      "id": "sale-1001",
+      "sale_id": "INV-2026-1001",
+      "customer_id": "cust-1",
+      "customer_name": "Rashid Al Nuaimi",
+      "customer_phone": "+971 50 123 4567",
+      "customer_email": "rashid@example.com",
+      "items": [
+        {
+          "product_id": "prod-1",
+          "name": "Japanese Crepe Kandora Fabric",
+          "price": 180,
+          "quantity": 4,
+          "line_total": 720
+        },
+        {
+          "product_id": "prod-5",
+          "name": "Traditional Emirati Kandora Stitching",
+          "price": 220,
+          "quantity": 1,
+          "line_total": 220
+        }
+      ],
+      "subtotal": 940,
+      "discount": 40,
+      "tax_percent": 5,
+      "tax_amount": 45,
+      "total": 945,
+      "amount_paid": 945,
+      "balance_due": 0,
+      "payment_method": "Card",
+      "payment_status": "Paid",
+      "date": "2026-10-12",
+      "status": "Completed",
+      "bill_sent_whatsapp": true,
+      "whatsapp_status": "sent",
+      "sent_to_number": "971501234567",
+      "sent_at": "2026-10-12T16:20:00Z",
+      "whatsapp_error": null,
+      "whatsapp_history": [
+        {
+          "sent_at": "2026-10-12T16:20:00Z",
+          "number": "971501234567",
+          "status": "sent",
+          "error": null
+        }
+      ],
+      "bill_sent_email": false,
+      "created_date": "2026-10-12T16:20:00Z"
+    },
+    {
+      "id": "sale-1002",
+      "sale_id": "INV-2026-1002",
+      "customer_id": "cust-2",
+      "customer_name": "Alex Hunter",
+      "customer_phone": "+971 52 987 6543",
+      "customer_email": "alex.hunter@example.com",
+      "items": [
+        {
+          "product_id": "prod-7",
+          "name": "Pure Silk Tie — Midnight Navy",
+          "price": 110,
+          "quantity": 2,
+          "line_total": 220
+        },
+        {
+          "product_id": "prod-8",
+          "name": "Mother of Pearl Cufflinks Set",
+          "price": 150,
+          "quantity": 1,
+          "line_total": 150
+        }
+      ],
+      "subtotal": 370,
+      "discount": 0,
+      "tax_percent": 5,
+      "tax_amount": 18.5,
+      "total": 388.5,
+      "amount_paid": 388.5,
+      "balance_due": 0,
+      "payment_method": "Cash",
+      "payment_status": "Paid",
+      "date": "2026-10-13",
+      "status": "Completed",
+      "bill_sent_whatsapp": false,
+      "whatsapp_status": "pending",
+      "sent_to_number": null,
+      "sent_at": null,
+      "whatsapp_error": null,
+      "whatsapp_history": [],
+      "bill_sent_email": false,
+      "created_date": "2026-10-13T01:15:00Z"
+    }
+  ],
+  "Order": [
+    {
+      "id": "ord-101",
+      "order_id": "MH-2026-101",
+      "customer_id": "cust-1",
+      "customer_name": "Rashid Al Nuaimi",
+      "booking_date": "2026-10-10",
+      "delivery_date": "2026-10-18",
+      "priority": "Normal",
+      "order_type": "Standard",
+      "template_id": "tmpl-1",
+      "template_name": "Emirati Kandora",
+      "measurement_values": {
+        "Length": "58.5",
+        "Shoulder": "18.5",
+        "Sleeves": "25.0",
+        "Neck / Collar": "16.5",
+        "Chest": "42.0"
+      },
+      "fabric_type": "Japanese Crepe",
+      "fabric_quantity": 4,
+      "fabric_cost": 180,
+      "tailor_id": "tl-2",
+      "tailor_name": "Tariq Mahmood",
+      "tailor_rate": 90,
+      "subtotal": 810,
+      "total_amount": 850.5,
+      "amount_paid": 500,
+      "balance_due": 350.5,
+      "payment_status": "Partial",
+      "status": "Stitching",
+      "delivery_method": "Pickup",
+      "created_date": "2026-10-10T11:00:00Z"
+    }
+  ],
+  "Payment": [],
+  "Expense": [],
+  "SubscriptionPlan": [
+    {
+      "id": "plan_yearly",
+      "name": "Yearly Pro",
+      "price_label": "AED 2,222/yr",
+      "amount": 2222,
+      "duration_days": 365,
+      "payment_url": "https://pay.ziina.com/mehar/yearly",
+      "is_active": true,
+      "sort_order": 1
+    },
+    {
+      "id": "plan_lifetime",
+      "name": "Lifetime Perpetual",
+      "price_label": "AED 3,200 one-time",
+      "amount": 3200,
+      "duration_days": 36500,
+      "payment_url": "https://pay.ziina.com/mehar/lifetime",
+      "is_active": true,
+      "sort_order": 2
+    }
+  ],
+  "Coupon": [
+    {
+      "id": "coup_promo48",
+      "code": "PROMO48",
+      "duration_hours": 48,
+      "max_redemptions": 100,
+      "redemption_count": 0,
+      "is_active": true
+    }
+  ],
+  "Business": [
+    {
+      "id": "biz-default",
+      "name": "Mehar Tailors LLC",
+      "slug": "mehar-tailors",
+      "status": "active"
+    }
+  ],
+  "WebsiteConfig": [
+    {
+      "id": "cfg-1",
+      "enabled": true,
+      "auto_accept": false,
+      "title": "THREDO Online Boutique",
+      "tagline": "Bespoke tailoring and curated retail fabrics in Dubai.",
+      "garment_types": [
+        "Emirati Kandora",
+        "Bespoke Suit",
+        "Formal Shirt",
+        "Trousers"
+      ],
+      "contact_phone": "+971 52 872 4090",
+      "contact_whatsapp": "+971 52 872 4090"
+    }
+  ]
+}

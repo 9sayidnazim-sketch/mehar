@@ -1,52 +1,170 @@
-// Shared WhatsApp Business API document sender.
-// Auto-detects auth: 360dialog (D360-API-KEY) vs Meta Cloud API (Bearer) from the base URL.
+// Shared Orbit WhatsApp Gateway Client
+// Orbit WhatsApp instance integration for PDF invoices
 
-export async function sendWhatsAppDocument({ secrets, to, pdfBytes, fileName, caption }) {
-  const token = secrets.get('WHATSAPP_ACCESS_TOKEN');
-  const phoneId = secrets.get('WHATSAPP_PHONE_NUMBER_ID');
-  const baseUrl = (secrets.get('WHATSAPP_API_BASE_URL') || 'https://graph.facebook.com/v18.0').replace(/\/+$/, '');
-  if (!token || !phoneId) {
+export async function checkOrbitStatus({ apiUrl, apiKey, timeoutMs = 10000 }) {
+  const url = (apiUrl || 'https://orbit-35-154-242-129.sslip.io').replace(/\/+$/, '');
+  const key = apiKey || '98fbdc66-d18e-423b-a7bc-8e308fd00277';
+
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+    const res = await fetch(`${url}/instance/status`, {
+      method: 'GET',
+      headers: {
+        apikey: key,
+      },
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+
+    const data = await res.json().catch(() => ({}));
+    const isConnected = Boolean(data?.data?.Connected);
+    const isLoggedIn = Boolean(data?.data?.LoggedIn);
+
+    if (isConnected && isLoggedIn) {
+      return { ok: true, connected: true, loggedIn: true, data: data.data };
+    }
+
     return {
       ok: false,
-      error: 'WhatsApp credentials not configured. Add WHATSAPP_ACCESS_TOKEN, WHATSAPP_PHONE_NUMBER_ID (and optionally WHATSAPP_API_BASE_URL) in dashboard settings → environment variables.',
+      connected: isConnected,
+      loggedIn: isLoggedIn,
+      error: `Orbit WhatsApp instance is not ready (Connected: ${isConnected}, LoggedIn: ${isLoggedIn})`,
+      details: data,
+    };
+  } catch (err) {
+    if (err.name === 'AbortError' || err.message?.includes('timeout')) {
+      return { ok: false, timed_out: true, error: 'Result unknown—check before retrying' };
+    }
+    return { ok: false, error: err.message || 'Failed to check Orbit status' };
+  }
+}
+
+export async function sendOrbitMediaDocument({
+  apiUrl,
+  apiKey,
+  to,
+  pdfBytes,
+  fileName,
+  caption,
+  timeoutMs = 15000,
+}) {
+  const url = (apiUrl || 'https://orbit-35-154-242-129.sslip.io').replace(/\/+$/, '');
+  const key = apiKey || '98fbdc66-d18e-423b-a7bc-8e308fd00277';
+
+  // Validate recipient: digits only, international format (8-15 digits)
+  const cleanNumber = String(to || '').replace(/\D/g, '');
+  if (cleanNumber.length < 8 || cleanNumber.length > 15) {
+    return {
+      ok: false,
+      error: 'Invalid recipient number. Must include country code and contain 8 to 15 digits only.',
     };
   }
-  const is360 = baseUrl.includes('360dialog');
-  const authHeader = is360 ? { 'D360-API-KEY': token } : { Authorization: `Bearer ${token}` };
 
-  // 1) Upload the PDF as media
+  // 1. Verify instance status before dispatching
+  const statusCheck = await checkOrbitStatus({ apiUrl: url, apiKey: key });
+  if (!statusCheck.ok) {
+    return {
+      ok: false,
+      error: statusCheck.error || 'Orbit WhatsApp instance is not connected or logged in.',
+      details: statusCheck.details,
+    };
+  }
+
+  // 2. Prepare multipart/form-data payload
+  // Let the HTTP client generate the multipart Content-Type boundary automatically
   const form = new FormData();
-  form.append('messaging_product', 'whatsapp');
-  form.append('file', new Blob([pdfBytes], { type: 'application/pdf' }), fileName);
-  const mediaRes = await fetch(`${baseUrl}/${phoneId}/media`, {
-    method: 'POST',
-    headers: authHeader,
-    body: form,
-  });
-  const mediaJson = await mediaRes.json();
-  if (!mediaJson.id) {
-    return { ok: false, error: 'WhatsApp media upload failed', details: mediaJson };
-  }
+  form.append('number', cleanNumber);
+  form.append('type', 'document');
+  form.append('filename', fileName || 'invoice.pdf');
+  form.append('caption', caption || '');
 
-  // 2) Send the document message
-  const msgRes = await fetch(`${baseUrl}/${phoneId}/messages`, {
-    method: 'POST',
-    headers: { ...authHeader, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      messaging_product: 'whatsapp',
-      to,
-      type: 'document',
-      document: { id: mediaJson.id, caption, filename: fileName },
-    }),
-  });
-  const msgJson = await msgRes.json();
-  if (!msgRes.ok) {
-    return { ok: false, error: 'WhatsApp message send failed', details: msgJson };
+  const fileBlob = new Blob([pdfBytes], { type: 'application/pdf' });
+  form.append('file', fileBlob, fileName || 'invoice.pdf');
+
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+    const res = await fetch(`${url}/send/media`, {
+      method: 'POST',
+      headers: {
+        apikey: key,
+      },
+      body: form,
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+
+    const json = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      return {
+        ok: false,
+        status: 'Failed',
+        error: json.error || json.message || `Orbit API error (${res.status})`,
+        details: json,
+      };
+    }
+
+    // Extract message ID from response structure
+    const messageId =
+      json?.key?.id ||
+      json?.messageId ||
+      json?.id ||
+      json?.data?.key?.id ||
+      json?.data?.id ||
+      json?.data?.messageId ||
+      `orbit_${Date.now()}`;
+
+    return {
+      ok: true,
+      status: 'Submitted',
+      message_id: messageId,
+      to: cleanNumber,
+      gateway_response: json,
+    };
+  } catch (err) {
+    if (err.name === 'AbortError' || err.message?.includes('timeout') || err.name === 'TimeoutError') {
+      return {
+        ok: false,
+        timed_out: true,
+        error: 'Result unknown—check before retrying',
+      };
+    }
+    return {
+      ok: false,
+      status: 'Failed',
+      error: err.message || 'Network error while dispatching invoice via Orbit',
+    };
   }
-  return {
-    ok: true,
-    message_id: msgJson.messages && msgJson.messages[0] ? msgJson.messages[0].id : null,
-    media_id: mediaJson.id,
-    to,
+}
+
+// Backwards-compatible helper supporting Base44 runtime secrets
+export async function sendWhatsAppDocument({ secrets, to, pdfBytes, fileName, caption }) {
+  const getSecret = (k) => {
+    try {
+      if (secrets && typeof secrets.get === 'function') {
+        const v = secrets.get(k);
+        if (v) return v;
+      }
+    } catch (_) {}
+    if (typeof process !== 'undefined' && process.env && process.env[k]) {
+      return process.env[k];
+    }
+    return null;
   };
+
+  const apiUrl = getSecret('ORBIT_API_URL') || 'https://orbit-35-154-242-129.sslip.io';
+  const apiKey = getSecret('ORBIT_INSTANCE_TOKEN') || '98fbdc66-d18e-423b-a7bc-8e308fd00277';
+
+  return sendOrbitMediaDocument({
+    apiUrl,
+    apiKey,
+    to,
+    pdfBytes,
+    fileName,
+    caption,
+  });
 }

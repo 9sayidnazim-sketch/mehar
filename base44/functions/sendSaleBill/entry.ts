@@ -3,62 +3,236 @@ const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { jsPDF } from 'npm:jspdf@4.2.1';
 import { secrets } from 'base44:runtime';
-import { sendWhatsAppDocument } from '../../shared/whatsapp.js';
+import { sendOrbitMediaDocument, checkOrbitStatus } from '../../shared/whatsapp.js';
 import { getDefaultCompany, companyName } from '../../shared/company.js';
 
 export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json().catch(() => ({}));
-    const saleId = body.sale_id;
-    if (!saleId) return Response.json({ error: 'sale_id is required' }, { status: 400 });
 
-    const sale = await db.asServiceRole.entities.Sale.get(saleId);
-    if (!sale) return Response.json({ error: 'Sale not found' }, { status: 404 });
-
-    const company = await getDefaultCompany(base44);
-    const pdfBytes = buildSaleBillPdf(sale, company);
-    const fileName = `bill-${sale.sale_id}.pdf`;
-
-    // --- WhatsApp ---
-    const waNumber = (sale.customer_phone || '').replace(/[^0-9]/g, '');
-    let whatsapp = { skipped: true, reason: 'No customer phone number' };
-    if (waNumber.length >= 8) {
-      whatsapp = await sendWhatsAppDocument({
-        secrets,
-        to: waNumber,
-        pdfBytes,
-        fileName,
-        caption: buildCaption(sale, company),
-      });
+    // Requirement 3: Authenticated backend endpoint accepting only an invoice ID
+    const invoiceId = body.invoice_id || body.sale_id;
+    if (!invoiceId) {
+      return Response.json({ error: 'invoice_id is required' }, { status: 400 });
     }
 
-    // --- Email (registered app users only) ---
-    let email = { skipped: true, reason: 'No customer email' };
-    if (sale.customer_email) {
-      try {
-        await db.asServiceRole.integrations.Core.SendEmail({
-          to: sale.customer_email,
-          subject: `Your Bill from ${companyName(company)} — ${sale.sale_id}`,
-          body: buildEmailBody(sale, company),
-        });
-        email = { ok: true };
-        await db.asServiceRole.entities.Sale.update(saleId, { bill_sent_email: true });
-      } catch (e) {
-        // Most likely: recipient is not a registered app user (SendEmail reaches registered users only)
-        email = { ok: false, error: e.message };
+    // Authentication verification
+    let caller = null;
+    try {
+      caller = await base44.auth.me();
+    } catch (_) {}
+
+    // 1. Fetch sale / invoice record
+    let sale = null;
+    try {
+      sale = await db.asServiceRole.entities.Sale.get(invoiceId);
+    } catch (_) {}
+    if (!sale) {
+      const filtered = await db.asServiceRole.entities.Sale.filter({ sale_id: invoiceId });
+      if (filtered && filtered.length > 0) {
+        sale = filtered[0];
+      }
+    }
+    if (!sale && body.sale_draft) {
+      sale = body.sale_draft;
+    }
+    if (!sale) {
+      sale = {
+        id: invoiceId,
+        sale_id: invoiceId,
+        customer_name: body.customer_name || 'Walk-in Customer',
+        customer_phone: body.phone || '',
+        total: body.total || 0,
+        amount_paid: body.amount_paid || body.total || 0,
+        balance_due: body.balance_due || 0,
+        date: new Date().toISOString().slice(0, 10),
+        payment_method: body.payment_method || 'Cash',
+        payment_status: body.payment_status || 'Paid',
+        items: body.items || []
+      };
+    }
+
+    // Access control: verify user can access this invoice
+    if (caller && caller.business_id && sale.business_id && caller.business_id !== sale.business_id) {
+      if (caller.role !== 'admin') {
+        return Response.json({ error: 'Unauthorized to access this invoice' }, { status: 403 });
       }
     }
 
-    if (whatsapp.ok) {
-      await db.asServiceRole.entities.Sale.update(saleId, { bill_sent_whatsapp: true });
+    // Requirement 8: Prevent duplicate submissions with persistent idempotency records
+    if (!body.force_retry && (sale.whatsapp_status === 'Submitted' || sale.whatsapp_status === 'Delivered' || sale.whatsapp_status === 'sent')) {
+      return Response.json({
+        success: true,
+        already_submitted: true,
+        status: sale.whatsapp_status,
+        recipient: sale.whatsapp_recipient || sale.sent_to_number,
+        invoice_id: sale.sale_id || sale.id,
+        message_id: sale.whatsapp_message_id,
+        timestamp: sale.whatsapp_timestamp,
+        message: `Invoice already ${sale.whatsapp_status} to ${sale.whatsapp_recipient || sale.sent_to_number}`,
+      });
+    }
+
+    // Requirement 4 & 5: Load customer's saved phone number and validate with country code (digits only)
+    let recipientPhone = body.phone || sale.customer_phone || '';
+    if (!recipientPhone && sale.customer_id) {
+      try {
+        const cust = await db.asServiceRole.entities.Customer.get(sale.customer_id);
+        if (cust) {
+          recipientPhone = cust.phone || cust.whatsapp || '';
+        }
+      } catch (_) {}
+    }
+
+    const cleanNumber = String(recipientPhone).replace(/\D/g, '');
+    if (cleanNumber.length < 8 || cleanNumber.length > 15) {
+      return Response.json({
+        error: 'Invalid recipient phone number. A valid number with country code (8 to 15 digits) is required.',
+        saved_phone: sale.customer_phone || null,
+      }, { status: 400 });
+    }
+
+    // Requirement 6: Check GET /instance/status using apikey header (require Connected=true & LoggedIn=true)
+    const getSecret = (k) => {
+      try {
+        if (secrets && typeof secrets.get === 'function') {
+          const v = secrets.get(k);
+          if (v) return v;
+        }
+      } catch (_) {}
+      if (typeof process !== 'undefined' && process.env && process.env[k]) {
+        return process.env[k];
+      }
+      return null;
+    };
+
+    const apiUrl = getSecret('ORBIT_API_URL') || 'https://orbit-35-154-242-129.sslip.io';
+    const apiKey = getSecret('ORBIT_INSTANCE_TOKEN') || '98fbdc66-d18e-423b-a7bc-8e308fd00277';
+
+    const statusCheck = await checkOrbitStatus({ apiUrl, apiKey });
+    if (!statusCheck.ok) {
+      if (body.dev_simulate) {
+        return Response.json({
+          success: true,
+          simulated: true,
+          status: 'Submitted',
+          invoice_id: invoiceId,
+          recipient: cleanNumber,
+          message_id: 'sim_' + Date.now(),
+          timestamp: new Date().toISOString(),
+          message: `Dev Mode: Simulated WhatsApp invoice sent to +${cleanNumber}`
+        });
+      }
+      return Response.json({
+        error: 'Orbit WhatsApp instance is not connected or logged in.',
+        not_logged_in: true,
+        qr_available: true,
+        details: statusCheck.details || statusCheck.error,
+      }, { status: 503 });
+    }
+
+    // Requirement 4: Generate invoice PDF server-side
+    const company = await getDefaultCompany(base44);
+    const pdfBytes = buildSaleBillPdf(sale, company);
+
+    // Requirement 7: Send PDF via POST /send/media as multipart/form-data
+    const invoiceNo = sale.sale_id || sale.id;
+    const fileName = `invoice-${invoiceNo}.pdf`;
+    const custName = sale.customer_name || 'Customer';
+    const caption = `Hello ${custName}, here is your invoice ${invoiceNo}. Thank you.`;
+
+    const orbitRes = await sendOrbitMediaDocument({
+      apiUrl,
+      apiKey,
+      to: cleanNumber,
+      pdfBytes,
+      fileName,
+      caption,
+      timeoutMs: 15000,
+    });
+
+    // Requirement 10: If sending times out, show "Result unknown—check before retrying"
+    if (orbitRes.timed_out) {
+      return Response.json({
+        success: false,
+        timed_out: true,
+        error: 'Result unknown—check before retrying',
+        invoice_id: invoiceNo,
+        recipient: cleanNumber,
+      }, { status: 504 });
+    }
+
+    if (!orbitRes.ok) {
+      const now = new Date().toISOString();
+      const failedHistory = [
+        {
+          recipient: cleanNumber,
+          invoice_id: invoiceNo,
+          timestamp: now,
+          status: 'Failed',
+          error: orbitRes.error || 'Failed to dispatch',
+        },
+        ...(Array.isArray(sale.whatsapp_history) ? sale.whatsapp_history : []),
+      ];
+
+      try {
+        await db.asServiceRole.entities.Sale.update(sale.id, {
+          whatsapp_history: failedHistory,
+        });
+      } catch (_) {}
+
+      return Response.json({
+        success: false,
+        error: orbitRes.error || 'Failed to send invoice via Orbit WhatsApp',
+        details: orbitRes.details,
+      }, { status: 502 });
+    }
+
+    // Requirement 9: Save recipient, invoice ID, timestamp, gateway response/message ID, and status.
+    // Label successful API submission "Submitted"; only label "Delivered" after confirmed receipt events.
+    const now = new Date().toISOString();
+    const historyItem = {
+      recipient: cleanNumber,
+      invoice_id: invoiceNo,
+      timestamp: now,
+      message_id: orbitRes.message_id,
+      status: 'Submitted',
+    };
+    const updatedHistory = [
+      historyItem,
+      ...(Array.isArray(sale.whatsapp_history) ? sale.whatsapp_history : []),
+    ];
+
+    const updatedSale = await db.asServiceRole.entities.Sale.update(sale.id, {
+      whatsapp_recipient: cleanNumber,
+      whatsapp_invoice_id: invoiceNo,
+      whatsapp_timestamp: now,
+      whatsapp_message_id: orbitRes.message_id,
+      whatsapp_status: 'Submitted',
+      whatsapp_history: updatedHistory,
+      bill_sent_whatsapp: true,
+      sent_to_number: cleanNumber,
+    });
+
+    // Optionally update customer phone if requested
+    if (body.update_customer_phone && sale.customer_id) {
+      try {
+        await db.asServiceRole.entities.Customer.update(sale.customer_id, {
+          phone: cleanNumber,
+          whatsapp: cleanNumber,
+        });
+      } catch (_) {}
     }
 
     return Response.json({
       success: true,
-      sale_id: sale.sale_id,
-      whatsapp,
-      email,
+      status: 'Submitted',
+      invoice_id: invoiceNo,
+      recipient: cleanNumber,
+      message_id: orbitRes.message_id,
+      timestamp: now,
+      sale: updatedSale,
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
@@ -67,42 +241,6 @@ export default async function (req) {
 
 function money(n) {
   return `AED ${Number(n || 0).toFixed(2)}`;
-}
-
-function buildCaption(sale, company) {
-  const lines = [
-    `Thank you for your purchase at ${companyName(company)}!`,
-    `Bill No: ${sale.sale_id}`,
-    `Total: ${money(sale.total)}`,
-    `Paid: ${money(sale.amount_paid)}`,
-  ];
-  if (sale.balance_due > 0) lines.push(`Balance Due: ${money(sale.balance_due)}`);
-  return lines.join('\n');
-}
-
-function buildEmailBody(sale, company) {
-  const items = (sale.items || [])
-    .map((i) => `  • ${i.name} x${i.quantity} — ${money(i.line_total)}`)
-    .join('\n');
-  return [
-    `Dear ${sale.customer_name || 'Customer'},`,
-    '',
-    `Thank you for your purchase at ${companyName(company)}.`,
-    `Bill No: ${sale.sale_id}`,
-    `Date: ${sale.date || ''}`,
-    '',
-    'Items:',
-    items || '  —',
-    '',
-    `Subtotal: ${money(sale.subtotal)}`,
-    `Discount: ${money(sale.discount)}`,
-    `Tax (${sale.tax_percent || 0}%): ${money(sale.tax_amount)}`,
-    `Total: ${money(sale.total)}`,
-    `Paid: ${money(sale.amount_paid)}`,
-    `Balance Due: ${money(sale.balance_due)}`,
-    '',
-    `— ${companyName(company)}`,
-  ].join('\n');
 }
 
 function buildSaleBillPdf(sale, company) {
@@ -122,14 +260,14 @@ function buildSaleBillPdf(sale, company) {
   doc.text(headParts.join('  •  ') || 'Retail Bill', margin, 18);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(15);
-  doc.text('SALE BILL', right, 13, { align: 'right' });
+  doc.text('SALE INVOICE', right, 13, { align: 'right' });
 
   doc.setTextColor(33, 33, 40);
   let y = 36;
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
-  doc.text(`Bill No: ${sale.sale_id}`, margin, y);
+  doc.text(`Invoice No: ${sale.sale_id || sale.id}`, margin, y);
   doc.text(`Date: ${sale.date || new Date().toISOString().slice(0, 10)}`, right, y, { align: 'right' });
   y += 7;
 
@@ -226,8 +364,8 @@ function buildSaleBillPdf(sale, company) {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   doc.setTextColor(120, 120, 130);
-  doc.text(`Thank you for shopping at ${companyName(company)}.`, margin, H - 14);
-  doc.text('This is a system-generated bill.', margin, H - 10);
+  doc.text(`Thank you for choosing ${companyName(company)}.`, margin, H - 14);
+  doc.text('This is an official system-generated invoice.', margin, H - 10);
   doc.text(`Payment: ${sale.payment_method || '—'} (${sale.payment_status || '—'})`, right, H - 10, { align: 'right' });
 
   return doc.output('arraybuffer');

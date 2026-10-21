@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import NotificationPopover from '@/components/NotificationPopover';
 import AccessBadge from '@/components/AccessBadge';
+import GlobalQuickAdd from '@/components/GlobalQuickAdd';
 
 const baseNavItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -212,7 +213,8 @@ export default function AppLayout() {
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
+            <GlobalQuickAdd />
             <Button variant="ghost" size="icon" onClick={toggleTheme} className="h-9 w-9 rounded-lg" title="Toggle theme">
               {theme === 'dark' ? <Sun className="h-4.5 w-4.5" style={{ width: '1.125rem', height: '1.125rem' }} /> : <Moon className="h-4.5 w-4.5" style={{ width: '1.125rem', height: '1.125rem' }} />}
             </Button>

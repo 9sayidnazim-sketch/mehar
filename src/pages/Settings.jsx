@@ -4,8 +4,10 @@ import { motion } from 'framer-motion';
 
 import {
   Building2, Ruler, CreditCard, Palette, Plus, Trash2,
-  Save, Globe, ShoppingBag, Edit, Package
+  Save, Globe, ShoppingBag, Edit, Package,
+  MessageCircle, CheckCircle2, RefreshCw, AlertTriangle, QrCode
 } from 'lucide-react';
+import WhatsAppLinkModal from '@/components/WhatsAppLinkModal';
 import WebsiteOrdering from '@/components/settings/WebsiteOrdering';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,6 +22,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 
 const TABS = [
   { key: 'company', label: 'Company Profile', icon: Building2 },
+  { key: 'whatsapp', label: 'WhatsApp Gateway', icon: MessageCircle },
   { key: 'products', label: 'Products & Catalog', icon: ShoppingBag },
   { key: 'templates', label: 'Measurement Templates', icon: Ruler },
   { key: 'payment', label: 'Payment Methods', icon: CreditCard },
@@ -55,6 +58,7 @@ export default function Settings() {
 
       <motion.div key={tab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
         {tab === 'company' && <CompanyProfile />}
+        {tab === 'whatsapp' && <WhatsAppGatewaySettings />}
         {tab === 'products' && <ProductsCatalog />}
         {tab === 'templates' && <MeasurementTemplates />}
         {tab === 'payment' && <PaymentMethods />}
@@ -703,6 +707,206 @@ function ProductsCatalog() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+function WhatsAppGatewaySettings() {
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [status, setStatus] = useState(null);
+  const [qrCodeData, setQrCodeData] = useState(null);
+  const [codeUrl, setCodeUrl] = useState(null);
+  const [linkModalOpen, setLinkModalOpen] = useState(false);
+
+  const fetchStatus = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/whatsapp/qr');
+      const data = await res.json();
+      setStatus(data);
+      if (data.qrcode) {
+        setQrCodeData(data.qrcode);
+      } else {
+        setQrCodeData('/orbit-qr.png');
+      }
+      if (data.code) {
+        setCodeUrl(data.code);
+      }
+    } catch (e) {
+      console.error(e);
+      setQrCodeData('/orbit-qr.png');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchStatus();
+  }, []);
+
+  const isLoggedIn = Boolean(status?.loggedIn || status?.data?.LoggedIn || (status?.ok && status?.connected && status?.loggedIn));
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-xl border border-border bg-card p-6 shadow-sm space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#25D366]/20 text-[#25D366]">
+              <MessageCircle className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-foreground">Orbit WhatsApp Gateway</h2>
+              <p className="text-xs text-muted-foreground">
+                Automated A4 PDF tax invoices & sales dispatch via WhatsApp
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={fetchStatus}
+              disabled={loading}
+              className="gap-1.5 text-xs"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+              Refresh Status
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => setLinkModalOpen(true)}
+              className="gap-1.5 bg-[#25D366] hover:bg-[#1EBE5D] text-white text-xs font-semibold"
+            >
+              <QrCode className="h-3.5 w-3.5" />
+              {isLoggedIn ? 'Re-link WhatsApp' : 'Link Device (Scan QR)'}
+            </Button>
+          </div>
+        </div>
+
+        {/* Live Status Summary */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
+          <div className="rounded-lg border border-border bg-muted/30 p-3">
+            <span className="text-[11px] text-muted-foreground block">Socket Connection</span>
+            <div className="flex items-center gap-2 mt-1">
+              <span className={`h-2.5 w-2.5 rounded-full ${status?.connected ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+              <span className="text-xs font-semibold text-foreground">
+                {status?.connected ? 'Connected to Gateway' : 'Disconnected'}
+              </span>
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-border bg-muted/30 p-3">
+            <span className="text-[11px] text-muted-foreground block">Session State</span>
+            <div className="flex items-center gap-2 mt-1">
+              <span className={`h-2.5 w-2.5 rounded-full ${isLoggedIn ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+              <span className="text-xs font-semibold text-foreground">
+                {isLoggedIn ? 'Logged In & Ready' : 'Not Logged In (QR Required)'}
+              </span>
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-border bg-muted/30 p-3">
+            <span className="text-[11px] text-muted-foreground block">Configured Sender</span>
+            <div className="flex items-center gap-1.5 mt-1 font-mono text-xs font-medium text-foreground">
+              <span>+63 956 244 1681</span>
+            </div>
+          </div>
+        </div>
+
+        {/* QR Section if not logged in */}
+        {!isLoggedIn ? (
+          <div className="rounded-xl border border-amber-500/30 bg-amber-50/50 dark:bg-amber-950/20 p-5 space-y-4">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <h4 className="text-sm font-bold text-amber-900 dark:text-amber-200">
+                  Orbit WhatsApp instance is not connected or logged in
+                </h4>
+                <p className="text-xs text-amber-800 dark:text-amber-300">
+                  To send invoices to customer phone numbers, scan the QR code below using your WhatsApp mobile app under <strong>Linked Devices</strong>.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center gap-6 pt-2 bg-card rounded-lg p-4 border border-border">
+              <div className="p-2 bg-white rounded-lg border border-border shadow-sm">
+                <img
+                  src={qrCodeData || '/orbit-qr.png'}
+                  alt="WhatsApp Pairing QR"
+                  className="h-44 w-44 object-contain"
+                />
+              </div>
+
+              <div className="space-y-2 text-xs text-muted-foreground">
+                <p className="font-semibold text-foreground text-sm">Quick Linking Steps:</p>
+                <ol className="list-decimal list-inside space-y-1.5 text-xs">
+                  <li>Open <strong>WhatsApp</strong> on your phone</li>
+                  <li>Tap <strong>Settings</strong> or <strong>Menu (⋮)</strong></li>
+                  <li>Select <strong>Linked Devices</strong> → <strong>Link a Device</strong></li>
+                  <li>Point your phone camera at this QR code</li>
+                </ol>
+                <div className="pt-2 flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={fetchStatus}
+                    className="text-xs gap-1.5"
+                  >
+                    <RefreshCw className="h-3 w-3" /> Check If Logged In
+                  </Button>
+                  {codeUrl && (
+                    <Button
+                      asChild
+                      size="sm"
+                      variant="ghost"
+                      className="text-xs text-emerald-600 dark:text-emerald-400"
+                    >
+                      <a href={codeUrl} target="_blank" rel="noopener noreferrer">
+                        Direct Pairing Link
+                      </a>
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-950/20 p-5 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <CheckCircle2 className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+              <div>
+                <h4 className="text-sm font-bold text-emerald-900 dark:text-emerald-200">
+                  WhatsApp Instance is Connected & Active
+                </h4>
+                <p className="text-xs text-emerald-800 dark:text-emerald-300">
+                  Invoices and receipts will be dispatched with PDF documents attached.
+                </p>
+              </div>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setLinkModalOpen(true)}
+              className="text-xs gap-1.5"
+            >
+              <QrCode className="h-3.5 w-3.5" /> Re-scan / Change Device
+            </Button>
+          </div>
+        )}
+      </div>
+
+      <WhatsAppLinkModal
+        open={linkModalOpen}
+        onOpenChange={setLinkModalOpen}
+        onConnected={() => {
+          fetchStatus();
+          toast({
+            title: 'WhatsApp Connected!',
+            description: 'Your WhatsApp device is now connected and ready to send invoices.',
+          });
+        }}
+      />
     </div>
   );
 }

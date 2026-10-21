@@ -13,25 +13,44 @@ export default async function (req) {
     const paymentId = body.payment_id;
     if (!paymentId) return Response.json({ error: 'payment_id is required' }, { status: 400 });
 
-    const payment = await db.asServiceRole.entities.Payment.get(paymentId);
-    if (!payment) return Response.json({ error: 'Payment not found' }, { status: 404 });
+    let payment = null;
+    if (paymentId) {
+      try {
+        payment = await db.asServiceRole.entities.Payment.get(paymentId);
+      } catch (_) {}
+    }
+    if (!payment && body.payment_draft) {
+      payment = body.payment_draft;
+    }
+    if (!payment) {
+      payment = {
+        id: paymentId || 'PAY-' + Date.now(),
+        amount: body.amount || (body.order_draft && body.order_draft.total_amount) || 0,
+        order_id: body.order_id,
+        order_ref: body.order_ref,
+        date: new Date().toISOString().slice(0, 10),
+        type: 'payment'
+      };
+    }
+
     if (payment.type === 'refund') {
       return Response.json({ skipped: true, reason: 'refund — no invoice sent' });
     }
 
-    let order = null;
-    let customer = null;
-    if (payment.order_id) {
+    let order = body.order_draft || null;
+    let customer = body.customer_draft || null;
+    if (!order && payment.order_id) {
       try { order = await db.asServiceRole.entities.Order.get(payment.order_id); } catch (e) { /* order may be gone */ }
     }
-    if (payment.customer_id) {
-      try { customer = await db.asServiceRole.entities.Customer.get(payment.customer_id); } catch (e) { /* customer may be gone */ }
+    if (!customer && (payment.customer_id || (order && order.customer_id))) {
+      const cid = payment.customer_id || order.customer_id;
+      try { customer = await db.asServiceRole.entities.Customer.get(cid); } catch (e) { /* customer may be gone */ }
     }
 
-    const rawNumber = (customer && (customer.whatsapp || customer.phone)) || '';
+    const rawNumber = body.phone || (customer && (customer.whatsapp || customer.phone)) || (order && order.customer_phone) || '';
     const waNumber = rawNumber.replace(/[^0-9]/g, '');
     if (waNumber.length < 8) {
-      return Response.json({ error: 'Customer has no valid WhatsApp/phone number', customer_id: payment.customer_id }, { status: 400 });
+      return Response.json({ error: 'Customer has no valid WhatsApp/phone number. Must be 8 to 15 digits.', customer_id: payment.customer_id }, { status: 400 });
     }
 
     const company = await getDefaultCompany(base44);
@@ -58,14 +77,23 @@ export default async function (req) {
       fileName,
       caption: captionLines.join('\n'),
     });
+    if (wa.timed_out) {
+      return Response.json({
+        success: false,
+        timed_out: true,
+        error: 'Result unknown—check before retrying',
+        order_ref: orderRef,
+        to: waNumber,
+      }, { status: 504 });
+    }
     if (!wa.ok) {
       return Response.json({ error: wa.error, details: wa.details }, { status: 502 });
     }
 
     return Response.json({
       success: true,
+      status: 'Submitted',
       message_id: wa.message_id,
-      media_id: wa.media_id,
       to: wa.to,
       order_ref: orderRef,
     });

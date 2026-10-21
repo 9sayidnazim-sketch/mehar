@@ -145,6 +145,52 @@
       "type": "boolean",
       "title": "Pending Online Review",
       "default": false
+    },
+    "whatsapp_status": {
+      "type": "string",
+      "title": "WhatsApp Status",
+      "enum": [
+        "Submitted",
+        "Delivered",
+        "Failed",
+        "Pending"
+      ]
+    },
+    "whatsapp_recipient": {
+      "type": "string",
+      "title": "WhatsApp Recipient"
+    },
+    "whatsapp_invoice_id": {
+      "type": "string",
+      "title": "WhatsApp Invoice ID"
+    },
+    "whatsapp_timestamp": {
+      "type": "string",
+      "title": "WhatsApp Sent Timestamp"
+    },
+    "whatsapp_message_id": {
+      "type": "string",
+      "title": "WhatsApp Gateway Message ID"
+    },
+    "sent_to_number": {
+      "type": "string",
+      "title": "Sent to Number"
+    },
+    "whatsapp_history": {
+      "type": "array",
+      "title": "WhatsApp Dispatch History",
+      "items": {
+        "type": "object",
+        "properties": {
+          "recipient": { "type": "string" },
+          "invoice_id": { "type": "string" },
+          "timestamp": { "type": "string" },
+          "message_id": { "type": "string" },
+          "status": { "type": "string" },
+          "error": { "type": "string" }
+        }
+      },
+      "default": []
     }
   },
   "required": [

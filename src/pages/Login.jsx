@@ -10,11 +10,14 @@ import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
 import { safeReturnTo } from "@/lib/authReturnTo";
 
+import GoogleAuthModal from "@/components/GoogleAuthModal";
+
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleModalOpen, setGoogleModalOpen] = useState(false);
   // Post-login destination (e.g. the MCP OAuth consent page sends users here
   // with returnTo so the grant flow can resume). Same-origin paths only.
   const returnTo = safeReturnTo();
@@ -34,34 +37,40 @@ export default function Login() {
   };
 
   const handleGoogle = () => {
-    db.auth.loginWithProvider("google", returnTo);
+    setGoogleModalOpen(true);
   };
 
   return (
-    <AuthLayout
-      icon={LogIn}
-      title="Welcome back"
-      subtitle="Log in to your account"
-      footer={
-        <>
-          Don't have an account?{" "}
-          <Link
-            to={"/register" + (returnTo !== "/" ? "?returnTo=" + encodeURIComponent(returnTo) : "")}
-            className="text-primary font-medium hover:underline"
-          >
-            Create one
-          </Link>
-        </>
-      }
-    >
-      <Button
-        variant="outline"
-        className="w-full h-12 text-sm font-medium mb-6"
-        onClick={handleGoogle}
+    <>
+      <GoogleAuthModal
+        open={googleModalOpen}
+        onOpenChange={setGoogleModalOpen}
+        returnTo={returnTo}
+      />
+      <AuthLayout
+        icon={LogIn}
+        title="Welcome back"
+        subtitle="Log in to your account"
+        footer={
+          <>
+            Don't have an account?{" "}
+            <Link
+              to={"/register" + (returnTo !== "/" ? "?returnTo=" + encodeURIComponent(returnTo) : "")}
+              className="text-primary font-medium hover:underline"
+            >
+              Create one
+            </Link>
+          </>
+        }
       >
-        <GoogleIcon className="w-5 h-5 mr-2" />
-        Continue with Google
-      </Button>
+        <Button
+          variant="outline"
+          className="w-full h-12 text-sm font-medium mb-6"
+          onClick={handleGoogle}
+        >
+          <GoogleIcon className="w-5 h-5 mr-2" />
+          Continue with Google
+        </Button>
 
       <div className="relative mb-6">
         <div className="absolute inset-0 flex items-center">
@@ -129,5 +138,6 @@ export default function Login() {
         </Button>
       </form>
     </AuthLayout>
+    </>
   );
 }

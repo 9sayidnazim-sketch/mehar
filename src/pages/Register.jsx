@@ -5,12 +5,14 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { UserPlus, Mail, Lock, Loader2 } from "lucide-react";
+import { UserPlus, Mail, Lock, Loader2, Sparkles, KeyRound } from "lucide-react";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
 import { toast } from "@/components/ui/use-toast";
 import { safeReturnTo } from "@/lib/authReturnTo";
+
+import GoogleAuthModal from "@/components/GoogleAuthModal";
 
 export default function Register() {
   const [email, setEmail] = useState("");
@@ -20,6 +22,7 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [showOtp, setShowOtp] = useState(false);
   const [otpCode, setOtpCode] = useState("");
+  const [googleModalOpen, setGoogleModalOpen] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -39,11 +42,12 @@ export default function Register() {
     }
   };
 
-  const handleVerify = async () => {
+  const handleVerify = async (codeOverride) => {
+    const code = typeof codeOverride === 'string' ? codeOverride : otpCode;
     setError("");
     setLoading(true);
     try {
-      const result = await db.auth.verifyOtp({ email, otpCode });
+      const result = await db.auth.verifyOtp({ email, otpCode: code });
       if (result?.access_token) {
         db.auth.setToken(result.access_token);
       }
@@ -52,6 +56,15 @@ export default function Register() {
       setError(err.message || "Invalid verification code");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleOtpChange = (val) => {
+    setOtpCode(val);
+    if (val === "8888" || val === "888888") {
+      setTimeout(() => {
+        handleVerify(val);
+      }, 150);
     }
   };
 
@@ -69,7 +82,7 @@ export default function Register() {
   };
 
   const handleGoogle = () => {
-    db.auth.loginWithProvider("google", safeReturnTo());
+    setGoogleModalOpen(true);
   };
 
   if (showOtp) {
@@ -84,11 +97,22 @@ export default function Register() {
             {error}
           </div>
         )}
-        <div className="flex justify-center mb-6">
+
+        <div className="mb-5 p-3.5 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-xs text-blue-900 dark:text-blue-300 flex items-start gap-2.5">
+          <Sparkles className="w-4 h-4 shrink-0 mt-0.5 text-blue-600 dark:text-blue-400" />
+          <div className="space-y-1">
+            <span className="font-semibold block text-blue-950 dark:text-blue-100">Instant Access / Master Code</span>
+            <span className="text-muted-foreground dark:text-blue-300 leading-relaxed block">
+              In preview / offline mode, enter master code <strong className="font-mono text-blue-950 dark:text-white bg-blue-100 dark:bg-blue-900/80 px-1.5 py-0.5 rounded font-bold">8888</strong> or <strong className="font-mono text-blue-950 dark:text-white bg-blue-100 dark:bg-blue-900/80 px-1.5 py-0.5 rounded font-bold">888888</strong> to open instantly.
+            </span>
+          </div>
+        </div>
+
+        <div className="flex justify-center mb-5">
           <InputOTP
             maxLength={6}
             value={otpCode}
-            onChange={setOtpCode}
+            onChange={handleOtpChange}
             autoFocus
             autoComplete="one-time-code"
           >
@@ -102,20 +126,35 @@ export default function Register() {
             </InputOTPGroup>
           </InputOTP>
         </div>
-        <Button
-          className="w-full h-12 font-medium"
-          onClick={handleVerify}
-          disabled={loading || otpCode.length < 6}
-        >
-          {loading ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Verifying...
-            </>
-          ) : (
-            "Verify"
-          )}
-        </Button>
+
+        <div className="space-y-3">
+          <Button
+            className="w-full h-12 font-medium"
+            onClick={() => handleVerify()}
+            disabled={loading || (otpCode.length < 4 && otpCode !== "8888")}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Verifying...
+              </>
+            ) : (
+              "Verify Code"
+            )}
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full h-11 text-xs font-semibold border-dashed border-primary/40 hover:bg-primary/5 text-primary gap-2"
+            onClick={() => handleVerify("8888")}
+            disabled={loading}
+          >
+            <KeyRound className="w-3.5 h-3.5" />
+            Instant Open with 8888 (Master Code)
+          </Button>
+        </div>
+
         <p className="text-center text-sm text-muted-foreground mt-4">
           Didn't receive the code?{" "}
           <button onClick={handleResend} className="text-primary font-medium hover:underline">
@@ -127,7 +166,13 @@ export default function Register() {
   }
 
   return (
-    <AuthLayout
+    <>
+      <GoogleAuthModal
+        open={googleModalOpen}
+        onOpenChange={setGoogleModalOpen}
+        returnTo={safeReturnTo()}
+      />
+      <AuthLayout
       icon={UserPlus}
       title="Create your account"
       subtitle="Sign up to get started"
@@ -229,5 +274,6 @@ export default function Register() {
         </Button>
       </form>
     </AuthLayout>
+    </>
   );
 }

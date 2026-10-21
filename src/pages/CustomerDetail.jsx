@@ -95,7 +95,17 @@ export default function CustomerDetail() {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="gap-1.5"><MessageCircle className="h-4 w-4" /> WhatsApp</Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => {
+                const num = (customer.whatsapp || customer.phone || '').replace(/\D/g, '');
+                if (num) window.open(`https://wa.me/${num}`, '_blank');
+              }}
+            >
+              <MessageCircle className="h-4 w-4 text-emerald-600" /> WhatsApp
+            </Button>
             <Button variant="outline" size="sm" className="gap-1.5"><CreditCard className="h-4 w-4" /> Payment</Button>
             <Link to={`/orders?new=1&customer=${id}`}>
               <Button size="sm" className="gap-1.5 bg-primary hover:bg-primary/90"><Plus className="h-4 w-4" /> Add Order</Button>

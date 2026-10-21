@@ -32,3 +32,5 @@ dist-ssr
 base44/.app.jsonc
 .vercel
 .env*
+.data/
+.openpost/

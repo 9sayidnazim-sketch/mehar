@@ -17,7 +17,14 @@ export default function Tailors() {
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
 
-  useEffect(() => { loadTailors(); }, []);
+  useEffect(() => {
+    loadTailors();
+    const handleSync = (e) => {
+      if (e.detail?.entity === 'Tailor') loadTailors();
+    };
+    window.addEventListener('thredo-data-updated', handleSync);
+    return () => window.removeEventListener('thredo-data-updated', handleSync);
+  }, []);
 
   const loadTailors = async () => {
     try {
@@ -121,15 +128,18 @@ export default function Tailors() {
 }
 
 function AddTailorDialog({ open, onClose, onCreated }) {
-  const [form, setForm] = useState({ name: '', phone: '', email: '', specialization: 'General', department: 'Workshop', rate_type: 'piecework', rate: 0 });
+  const [form, setForm] = useState({ name: '', phone: '', email: '', specialization: 'Master Cutter', department: 'Workshop', rate_type: 'piecework', rate: 45 });
   const [saving, setSaving] = useState(false);
 
   const submit = async () => {
     if (!form.name) return;
     setSaving(true);
     try {
-      await db.entities.Tailor.create({ ...form, active: true, total_orders_assigned: 0, completed_orders: 0, monthly_earnings: 0 });
-      setForm({ name: '', phone: '', email: '', specialization: 'General', department: 'Workshop', rate_type: 'piecework', rate: 0 });
+      const created = await db.entities.Tailor.create({ ...form, active: true, total_orders_assigned: 0, completed_orders: 0, monthly_earnings: 0 });
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('thredo-data-updated', { detail: { entity: 'Tailor', item: created } }));
+      }
+      setForm({ name: '', phone: '', email: '', specialization: 'Master Cutter', department: 'Workshop', rate_type: 'piecework', rate: 45 });
       onCreated();
       onClose();
     } catch (e) { console.error(e); }
@@ -139,31 +149,60 @@ function AddTailorDialog({ open, onClose, onCreated }) {
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-md">
-        <DialogHeader><DialogTitle>Add Tailor</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>Add Tailor / Craftsman On Time</DialogTitle></DialogHeader>
         <div className="space-y-3 py-2">
-          <div className="space-y-1.5"><Label>Name *</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5"><Label>Phone</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
-            <div className="space-y-1.5"><Label>Email</Label><Input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Full Name *</Label>
+            <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Master Rashid" className="h-8 text-xs" />
           </div>
-          <div className="space-y-1.5"><Label>Specialization</Label><Input value={form.specialization} onChange={(e) => setForm({ ...form, specialization: e.target.value })} /></div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label>Rate Type</Label>
+              <Label className="text-xs">Phone</Label>
+              <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+971..." className="h-8 text-xs font-mono" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Email</Label>
+              <Input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="tailor@workshop.ae" className="h-8 text-xs" />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Specialization</Label>
+            <select
+              value={form.specialization}
+              onChange={(e) => setForm({ ...form, specialization: e.target.value })}
+              className="h-8 w-full rounded-md border border-input bg-transparent px-2.5 text-xs outline-none focus:border-primary"
+            >
+              <option value="Master Cutter">Master Cutter & Pattern Specialist</option>
+              <option value="Suits & Blazers">Suits, Blazers & Tuxedos</option>
+              <option value="Kandora & Traditional">Kandora / Dishdasha Specialist</option>
+              <option value="Shirts & Trousers">Shirts & Formal Trousers</option>
+              <option value="Alterations & Fitting">Alterations & Precision Fitting</option>
+              <option value="Embroidery & Zari">Embroidery, Zari & Handwork</option>
+              <option value="Finishing & Pressing">Finishing, Buttons & Pressing</option>
+            </select>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Rate Type</Label>
               <Select value={form.rate_type} onValueChange={(v) => setForm({ ...form, rate_type: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="piecework">Piecework</SelectItem>
+                  <SelectItem value="piecework">Piecework (Per Item)</SelectItem>
                   <SelectItem value="hourly">Hourly</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5"><Label>Rate</Label><Input type="number" value={form.rate} onChange={(e) => setForm({ ...form, rate: parseFloat(e.target.value) || 0 })} /></div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Standard Rate (AED)</Label>
+              <Input type="number" value={form.rate} onChange={(e) => setForm({ ...form, rate: parseFloat(e.target.value) || 0 })} className="h-8 text-xs font-mono" />
+            </div>
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={submit} disabled={saving || !form.name} className="bg-primary hover:bg-primary/90">{saving ? 'Saving...' : 'Save'}</Button>
+          <Button variant="outline" size="sm" onClick={onClose}>Cancel</Button>
+          <Button onClick={submit} disabled={saving || !form.name} className="bg-primary hover:bg-primary/90" size="sm">
+            {saving ? 'Saving...' : 'Add Tailor'}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

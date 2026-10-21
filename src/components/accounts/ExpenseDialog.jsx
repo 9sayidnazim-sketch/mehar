@@ -15,23 +15,43 @@ const METHODS = ['Cash', 'Card', 'UPI', 'Bank Transfer'];
 
 export default function ExpenseDialog({ open, onOpenChange, onSaved }) {
   const { toast } = useToast();
-  const [form, setForm] = useState({ date: new Date().toISOString().slice(0, 10), category: 'Other', description: '', amount: '', payment_method: 'Cash', reference_number: '' });
+  const [form, setForm] = useState({
+    date: new Date().toISOString().slice(0, 10),
+    category: 'Fabric Purchase',
+    custom_category: '',
+    description: '',
+    amount: '',
+    payment_method: 'Cash',
+    reference_number: '',
+  });
   const [saving, setSaving] = useState(false);
 
   const save = async () => {
     if (!form.amount || !form.date) return;
     setSaving(true);
     try {
+      const finalCat = form.category === 'Other' && form.custom_category.trim()
+        ? form.custom_category.trim()
+        : form.category;
+
       const created = await db.entities.Expense.create({
         date: form.date,
-        category: form.category,
+        category: finalCat,
         description: form.description,
         amount: Number(form.amount),
         payment_method: form.payment_method,
         reference_number: form.reference_number,
       });
-      toast({ title: 'Expense recorded' });
-      setForm({ date: new Date().toISOString().slice(0, 10), category: 'Other', description: '', amount: '', payment_method: 'Cash', reference_number: '' });
+      toast({ title: 'Expense recorded on time' });
+      setForm({
+        date: new Date().toISOString().slice(0, 10),
+        category: 'Fabric Purchase',
+        custom_category: '',
+        description: '',
+        amount: '',
+        payment_method: 'Cash',
+        reference_number: '',
+      });
       onOpenChange(false);
       onSaved(created);
     } catch (e) {
@@ -67,6 +87,16 @@ export default function ExpenseDialog({ open, onOpenChange, onSaved }) {
               {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
+          {form.category === 'Other' && (
+            <div className="col-span-2 space-y-1.5">
+              <Label>Custom Category Name *</Label>
+              <Input
+                value={form.custom_category}
+                onChange={(e) => setForm({ ...form, custom_category: e.target.value })}
+                placeholder="e.g. Refreshments, Tools, Packaging..."
+              />
+            </div>
+          )}
           <div className="space-y-1.5">
             <Label>Payment Method</Label>
             <select
