@@ -63,6 +63,7 @@ export function formatWhatsAppNumber(phoneInput, countryCode = '971') {
 }
 
 import seedData from './seedData.json';
+import { supabaseAdapter } from './supabaseAdapter';
 
 // Local storage offline persistence helper
 function getLocalEntities(prop) {
@@ -98,6 +99,10 @@ const entitiesProxy = new Proxy(base44.entities, {
       }
       return {
         async list(sort = '-created_date', limit = 100) {
+          if (supabaseAdapter.isAvailable()) {
+            const supaItems = await supabaseAdapter.filter(prop, {}, sort, limit);
+            if (Array.isArray(supaItems) && supaItems.length > 0) return supaItems;
+          }
           try {
             const res = await base44.entities[prop].list(sort, limit);
             if (Array.isArray(res) && res.length > 0) return res;
@@ -106,6 +111,13 @@ const entitiesProxy = new Proxy(base44.entities, {
           return items.slice(0, limit);
         },
         async filter(query = {}, sort = '-created_date', limit = 100) {
+          if (supabaseAdapter.isAvailable()) {
+            const supaItems = await supabaseAdapter.filter(prop, query, sort, limit);
+            if (Array.isArray(supaItems) && supaItems.length > 0) {
+              supaItems.items = supaItems;
+              return supaItems;
+            }
+          }
           try {
             const res = await base44.entities[prop].filter(query, sort, limit);
             if (Array.isArray(res) && res.length > 0) return res;
@@ -122,6 +134,10 @@ const entitiesProxy = new Proxy(base44.entities, {
           return resArray;
         },
         async get(id) {
+          if (supabaseAdapter.isAvailable()) {
+            const supaItem = await supabaseAdapter.get(prop, id);
+            if (supaItem) return supaItem;
+          }
           try {
             const res = await base44.entities[prop].get(id);
             if (res) return res;
@@ -135,6 +151,10 @@ const entitiesProxy = new Proxy(base44.entities, {
             created_date: new Date().toISOString(),
             ...data
           };
+          if (supabaseAdapter.isAvailable()) {
+            const supaCreated = await supabaseAdapter.create(prop, data);
+            if (supaCreated) return supaCreated;
+          }
           try {
             const res = await base44.entities[prop].create(data);
             if (res) return res;
@@ -145,6 +165,10 @@ const entitiesProxy = new Proxy(base44.entities, {
           return newItem;
         },
         async update(id, data) {
+          if (supabaseAdapter.isAvailable()) {
+            const supaUpdated = await supabaseAdapter.update(prop, id, data);
+            if (supaUpdated) return supaUpdated;
+          }
           try {
             const res = await base44.entities[prop].update(id, data);
             if (res) return res;
@@ -159,6 +183,9 @@ const entitiesProxy = new Proxy(base44.entities, {
           return { id, ...data };
         },
         async delete(id) {
+          if (supabaseAdapter.isAvailable()) {
+            await supabaseAdapter.delete(prop, id);
+          }
           try {
             return await base44.entities[prop].delete(id);
           } catch (e) {}
