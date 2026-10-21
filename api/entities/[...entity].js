@@ -61,10 +61,27 @@ export default async function handler(req, res) {
     return res.status(204).end();
   }
 
-  const url = req.url || '';
-  const match = url.match(/\/entities\/([a-zA-Z0-9_-]+)(?:\/([a-zA-Z0-9_-]+))?/);
+  const cleanUrl = (req.url || '').split('?')[0];
+  const match = cleanUrl.match(/\/entities\/([a-zA-Z0-9_-]+)(?:\/([a-zA-Z0-9_-]+))?/);
   const entityName = match ? match[1] : '';
   const recordId = match ? match[2] : null;
+
+  let queryFilter = {};
+  let sortCol = '-created_date';
+  let limitVal = 100;
+
+  try {
+    const parsedUrl = new URL(req.url, 'http://localhost');
+    if (parsedUrl.searchParams.get('q')) {
+      queryFilter = JSON.parse(parsedUrl.searchParams.get('q'));
+    }
+    if (parsedUrl.searchParams.get('sort')) {
+      sortCol = parsedUrl.searchParams.get('sort');
+    }
+    if (parsedUrl.searchParams.get('limit')) {
+      limitVal = parseInt(parsedUrl.searchParams.get('limit'), 10) || 100;
+    }
+  } catch (_) {}
 
   let body = req.body || {};
   if (typeof body === 'string') {
@@ -78,10 +95,27 @@ export default async function handler(req, res) {
 
       if (req.method === 'GET') {
         if (recordId) {
-          const { data, error } = await supabase.from(table).select('*').eq('id', recordId).maybeSingle();
-          if (!error && data) return res.status(200).json(data);
+          let { data } = await supabase.from(table).select('*').eq('id', recordId).maybeSingle();
+          if (!data && (entityName === 'Order' || entityName === 'Sale')) {
+            const { data: byRef } = await supabase.from(table).select('*').eq('order_id', recordId).maybeSingle();
+            data = byRef;
+          }
+          if (data) return res.status(200).json(data);
         } else {
-          const { data, error } = await supabase.from(table).select('*').limit(100);
+          let q = supabase.from(table).select('*');
+          if (queryFilter && typeof queryFilter === 'object') {
+            for (const [k, v] of Object.entries(queryFilter)) {
+              if (v !== undefined && v !== null) q = q.eq(k, v);
+            }
+          }
+          if (sortCol) {
+            const isDesc = sortCol.startsWith('-');
+            const col = isDesc ? sortCol.substring(1) : sortCol;
+            const normalizedCol = col === 'created_date' ? 'created_at' : col;
+            q = q.order(normalizedCol, { ascending: !isDesc });
+          }
+          q = q.limit(limitVal);
+          const { data, error } = await q;
           if (!error && Array.isArray(data) && data.length > 0) {
             return res.status(200).json(data);
           }
@@ -111,10 +145,19 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     if (recordId) {
-      const item = items.find(i => i.id === recordId) || null;
+      const item = items.find(i => String(i.id) === String(recordId) || String(i.order_id) === String(recordId)) || null;
       return res.status(200).json(item);
     }
-    return res.status(200).json(items);
+    let filtered = items;
+    if (queryFilter && typeof queryFilter === 'object' && Object.keys(queryFilter).length > 0) {
+      filtered = filtered.filter(item => {
+        return Object.entries(queryFilter).every(([k, v]) => {
+          if (v === undefined || v === null) return true;
+          return item[k] === v;
+        });
+      });
+    }
+    return res.status(200).json(filtered.slice(0, limitVal));
   }
 
   if (req.method === 'POST') {
@@ -129,7 +172,7 @@ export default async function handler(req, res) {
 
   if (req.method === 'PUT' || req.method === 'PATCH') {
     if (recordId) {
-      const idx = items.findIndex(i => i.id === recordId);
+      const idx = items.findIndex(i => String(i.id) === String(recordId) || String(i.order_id) === String(recordId));
       if (idx !== -1) {
         items[idx] = { ...items[idx], ...body };
         return res.status(200).json(items[idx]);
@@ -139,6 +182,10 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'DELETE') {
+    if (recordId) {
+      const idx = items.findIndex(i => String(i.id) === String(recordId) || String(i.order_id) === String(recordId));
+      if (idx !== -1) items.splice(idx, 1);
+    }
     return res.status(200).json({ success: true });
   }
 

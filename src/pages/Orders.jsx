@@ -1,6 +1,6 @@
 import { db } from '@/api/base44Client';
 import React, { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
 import StatusBadge from '@/components/StatusBadge';
@@ -12,32 +12,41 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-
 const STATUSES = ['Booked', 'Cutting', 'Assigned', 'Stitching', 'Quality Check', 'Trial', 'Alteration', 'Ready', 'Delivered', 'Cancelled'];
 
 export default function Orders() {
+  const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [params, setParams] = useSearchParams();
+  const [params] = useSearchParams();
 
   useEffect(() => {
     loadOrders();
+    const handleSync = (e) => {
+      if (!e.detail?.entity || e.detail.entity === 'Order' || e.detail.entity === 'Payment') {
+        loadOrders();
+      }
+    };
+    window.addEventListener('thredo-data-updated', handleSync);
+    return () => window.removeEventListener('thredo-data-updated', handleSync);
   }, []);
 
   useEffect(() => {
     if (params.get('new') === '1') {
-      // open create dialog is handled by presence of 'new'
+      navigate('/orders/new');
     }
-  }, [params]);
+  }, [params, navigate]);
 
   const loadOrders = async () => {
     try {
       const data = await db.entities.Order.list('-created_date', 200);
-      setOrders(data);
+      const list = Array.isArray(data) ? data : (data?.items || []);
+      setOrders(list);
     } catch (e) {
       console.error(e);
+      setOrders([]);
     } finally {
       setLoading(false);
     }
@@ -81,13 +90,13 @@ export default function Orders() {
           />
         </div>
         <div className="flex flex-wrap gap-1.5">
-          {['All', ...STATUSES.slice(0, 5)].map((s) => (
+          {['All', ...STATUSES].map((s) => (
             <button
               key={s}
               onClick={() => setStatusFilter(s)}
               className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
                 statusFilter === s
-                  ? 'bg-primary text-primary-foreground'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
                   : 'bg-muted text-muted-foreground hover:bg-muted/70'
               }`}
             >
@@ -132,10 +141,11 @@ export default function Orders() {
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ delay: i * 0.01 }}
-                      className="border-b border-border/50 last:border-0 hover:bg-muted/30"
+                      onClick={() => navigate(`/orders/${o.id}`)}
+                      className="border-b border-border/50 last:border-0 hover:bg-muted/40 cursor-pointer transition-colors"
                     >
-                      <td className="px-4 py-3">
-                        <Link to={`/orders/${o.id}`} className="font-medium text-primary hover:underline">{o.order_id || o.id.slice(-6)}</Link>
+                      <td className="px-4 py-3 font-medium text-primary hover:underline">
+                        {o.order_id || (o.id ? String(o.id).slice(-6) : '—')}
                       </td>
                       <td className="px-4 py-3">{o.customer_name}</td>
                       <td className="px-4 py-3"><StatusBadge status={o.status} /></td>

@@ -3,7 +3,9 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
+import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/mehar-utils';
+import { useToast } from '@/components/ui/use-toast';
 import {
   ArrowLeft, User, Calendar, Ruler, Shirt, DollarSign, Save, Plus, Search
 } from 'lucide-react';
@@ -18,6 +20,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 
 export default function OrderCreate() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [params] = useSearchParams();
   const [customers, setCustomers] = useState([]);
   const [templates, setTemplates] = useState([]);
@@ -40,7 +43,7 @@ export default function OrderCreate() {
   const [newCustomField, setNewCustomField] = useState({ name: '', unit: 'cm' });
 
   const [form, setForm] = useState({
-    customer_id: '', customer_name: '',
+    customer_id: '', customer_name: '', customer_phone: '',
     booking_date: new Date().toISOString().slice(0, 10),
     delivery_date: '', priority: 'Normal', order_type: 'Standard',
     template_id: '', template_name: '', measurement_values: {},
@@ -68,7 +71,7 @@ export default function OrderCreate() {
         if (preselectCustomer) {
           const found = c.find((x) => x.id === preselectCustomer);
           if (found) {
-            setForm((f) => ({ ...f, customer_id: found.id, customer_name: found.name }));
+            setForm((f) => ({ ...f, customer_id: found.id, customer_name: found.name, customer_phone: found.phone || found.whatsapp || '' }));
           }
         }
       } catch (e) { console.error(e); }
@@ -125,11 +128,18 @@ export default function OrderCreate() {
         notes: 'Created during order setup',
       });
       setCustomers((prev) => [created, ...prev]);
-      setForm((f) => ({ ...f, customer_id: created.id, customer_name: created.name }));
+      setForm((f) => ({
+        ...f,
+        customer_id: created.id,
+        customer_name: created.name,
+        customer_phone: created.phone || created.whatsapp || ''
+      }));
       setShowCustomerDialog(false);
       setNewCust({ name: '', phone: '', email: '', whatsapp: '', address: '' });
+      toast({ title: 'Customer added', description: `${created.name} was selected for this order.` });
     } catch (err) {
       console.error(err);
+      toast({ title: 'Failed to create customer', description: err.message, variant: 'destructive' });
     } finally {
       setCreatingCust(false);
     }
@@ -156,8 +166,10 @@ export default function OrderCreate() {
       }));
       setShowTailorDialog(false);
       setNewTailor({ name: '', phone: '', specialization: 'Master Cutter', rate: '45' });
+      toast({ title: 'Tailor assigned', description: `${created.name} was added and assigned.` });
     } catch (err) {
       console.error(err);
+      toast({ title: 'Failed to add tailor', description: err.message, variant: 'destructive' });
     } finally {
       setCreatingTailor(false);
     }
@@ -218,9 +230,18 @@ export default function OrderCreate() {
         });
       }
 
+      toast({
+        title: 'Order Created Successfully',
+        description: `Order ${orderNumber} for ${form.customer_name} has been booked.`,
+      });
       navigate(`/orders/${order.id}`);
     } catch (e) {
       console.error(e);
+      toast({
+        title: 'Failed to create order',
+        description: e.message || 'An error occurred while saving the order. Please try again.',
+        variant: 'destructive',
+      });
       setSaving(false);
     }
   };
@@ -333,7 +354,7 @@ export default function OrderCreate() {
                       <button
                         key={c.id}
                         type="button"
-                        onClick={() => setForm({ ...form, customer_id: c.id, customer_name: c.name })}
+                        onClick={() => setForm({ ...form, customer_id: c.id, customer_name: c.name, customer_phone: c.phone || c.whatsapp || '' })}
                         className="flex w-full items-center justify-between rounded-xl border border-border p-3 text-left transition-all hover:border-primary/50 hover:bg-muted/40"
                       >
                         <div className="flex items-center gap-3">

@@ -50,7 +50,12 @@ export const supabaseAdapter = {
       }
 
       // Apply sorting
-      if (sort) {
+      if (typeof sort === 'object' && sort !== null) {
+        limit = sort.limit || limit;
+        sort = sort.sort || '-created_at';
+      }
+
+      if (typeof sort === 'string' && sort) {
         const isDesc = sort.startsWith('-');
         const col = isDesc ? sort.substring(1) : sort;
         // Normalize created_date to created_at if needed

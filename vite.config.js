@@ -242,6 +242,19 @@ function generateDevOrderInvoicePdf(payment, order, customer) {
   return doc.output('arraybuffer');
 }
 
+let devEntityStore = null;
+function getDevEntities() {
+  if (devEntityStore) return devEntityStore;
+  try {
+    const seedPath = path.resolve(process.cwd(), 'src/api/seedData.json');
+    if (fs.existsSync(seedPath)) {
+      devEntityStore = JSON.parse(fs.readFileSync(seedPath, 'utf8'));
+    }
+  } catch (_) {}
+  if (!devEntityStore) devEntityStore = {};
+  return devEntityStore;
+}
+
 function localDevApiPlugin() {
   return {
     name: 'local-dev-api-mock',
@@ -843,20 +856,21 @@ function localDevApiPlugin() {
 
         // Handle mock entities API
         if (url.includes('/entities/')) {
-          const match = url.match(/\/entities\/([a-zA-Z0-9_-]+)/);
+          const match = url.match(/\/entities\/([a-zA-Z0-9_-]+)(?:\/([a-zA-Z0-9_-]+))?/);
           const entityName = match ? match[1] : '';
-          let seedData = {};
-          try {
-            const seedPath = path.resolve(process.cwd(), 'src/api/seedData.json');
-            if (fs.existsSync(seedPath)) {
-              seedData = JSON.parse(fs.readFileSync(seedPath, 'utf8'));
-            }
-          } catch (_) {}
+          const recordId = match ? match[2] : null;
+          const store = getDevEntities();
+          if (!store[entityName]) store[entityName] = [];
 
           if (req.method === 'GET') {
-            const items = seedData[entityName] || [];
+            if (recordId) {
+              const item = store[entityName].find(i => String(i.id) === String(recordId) || String(i.order_id) === String(recordId)) || null;
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify(item));
+              return;
+            }
             res.setHeader('Content-Type', 'application/json');
-            res.end(JSON.stringify(items));
+            res.end(JSON.stringify(store[entityName]));
             return;
           }
           if (req.method === 'POST') {
@@ -870,6 +884,7 @@ function localDevApiPlugin() {
                 created_date: new Date().toISOString(),
                 ...body
               };
+              store[entityName].unshift(newItem);
               res.setHeader('Content-Type', 'application/json');
               res.end(JSON.stringify(newItem));
             });
@@ -881,12 +896,24 @@ function localDevApiPlugin() {
             req.on('end', () => {
               let body = {};
               try { body = JSON.parse(bodyStr); } catch (_) {}
+              if (recordId) {
+                const idx = store[entityName].findIndex(i => String(i.id) === String(recordId) || String(i.order_id) === String(recordId));
+                if (idx !== -1) {
+                  store[entityName][idx] = { ...store[entityName][idx], ...body };
+                  res.setHeader('Content-Type', 'application/json');
+                  res.end(JSON.stringify(store[entityName][idx]));
+                  return;
+                }
+              }
               res.setHeader('Content-Type', 'application/json');
-              res.end(JSON.stringify(body));
+              res.end(JSON.stringify({ id: recordId, ...body }));
             });
             return;
           }
           if (req.method === 'DELETE') {
+            if (recordId) {
+              store[entityName] = store[entityName].filter(i => String(i.id) !== String(recordId) && String(i.order_id) !== String(recordId));
+            }
             res.setHeader('Content-Type', 'application/json');
             res.end(JSON.stringify({ success: true }));
             return;

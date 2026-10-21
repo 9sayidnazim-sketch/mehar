@@ -85,118 +85,292 @@ function getLocalEntities(prop) {
 
 function setLocalEntities(prop, list) {
   if (typeof window === 'undefined') return;
-  localStorage.setItem('thredo_db_' + prop, JSON.stringify(list));
+  try {
+    localStorage.setItem('thredo_db_' + prop, JSON.stringify(list));
+    window.dispatchEvent(new CustomEvent('thredo-data-updated', { detail: { entity: prop } }));
+  } catch (_) {}
 }
 
-// Proxy wrapper around Base44 SDK that provides safe fallbacks
-// and ensures consistent API for legacy components
-const entitiesProxy = new Proxy(base44.entities, {
+// Unified Entity Data Layer:
+// Prioritizes Supabase -> Server API -> LocalStorage + Seed Data
+const entitiesProxy = new Proxy({}, {
   get(target, prop) {
-    if (typeof prop === 'string') {
-      const originalHandler = target[prop];
-      if (originalHandler) {
-        return originalHandler;
-      }
-      return {
-        async list(sort = '-created_date', limit = 100) {
-          if (supabaseAdapter.isAvailable()) {
-            const supaItems = await supabaseAdapter.filter(prop, {}, sort, limit);
-            if (Array.isArray(supaItems) && supaItems.length > 0) return supaItems;
-          }
+    if (typeof prop !== 'string') return undefined;
+
+    return {
+      async list(sort = '-created_date', limit = 100) {
+        let sortCol = '-created_date';
+        let limitVal = 100;
+        if (typeof sort === 'object' && sort !== null) {
+          limitVal = sort.limit || limitVal;
+          sortCol = sort.sort || sortCol;
+        } else if (typeof sort === 'string') {
+          sortCol = sort;
+          limitVal = limit;
+        }
+
+        // 1. Try Supabase if live
+        if (supabaseAdapter.isAvailable()) {
           try {
-            const res = await base44.entities[prop].list(sort, limit);
-            if (Array.isArray(res) && res.length > 0) return res;
-          } catch (e) {}
-          const items = getLocalEntities(prop);
-          return items.slice(0, limit);
-        },
-        async filter(query = {}, sort = '-created_date', limit = 100) {
-          if (supabaseAdapter.isAvailable()) {
-            const supaItems = await supabaseAdapter.filter(prop, query, sort, limit);
+            const supaItems = await supabaseAdapter.filter(prop, {}, sortCol, limitVal);
+            if (Array.isArray(supaItems) && supaItems.length > 0) {
+              setLocalEntities(prop, supaItems);
+              supaItems.items = supaItems;
+              return supaItems;
+            }
+          } catch (_) {}
+        }
+
+        // 2. Try Serverless API (/api/entities/:entity or /apps/:appId/entities/:entity)
+        if (typeof window !== 'undefined') {
+          try {
+            const res = await fetch(`/api/entities/${prop}?sort=${encodeURIComponent(sortCol)}&limit=${limitVal}`, {
+              headers: { 'Content-Type': 'application/json' }
+            });
+            if (res.ok) {
+              const serverData = await res.json();
+              if (Array.isArray(serverData) && serverData.length > 0) {
+                setLocalEntities(prop, serverData);
+                serverData.items = serverData;
+                return serverData;
+              }
+            }
+          } catch (_) {}
+        }
+
+        // 3. Fallback to LocalStorage (seeded with seedData)
+        const items = getLocalEntities(prop);
+        const sliced = items.slice(0, limitVal);
+        sliced.items = sliced;
+        return sliced;
+      },
+
+      async filter(query = {}, sort = '-created_date', limit = 100) {
+        let sortCol = '-created_date';
+        let limitVal = 100;
+        if (typeof sort === 'object' && sort !== null) {
+          limitVal = sort.limit || limitVal;
+          sortCol = sort.sort || sortCol;
+        } else if (typeof sort === 'string') {
+          sortCol = sort;
+          limitVal = limit;
+        }
+
+        // 1. Try Supabase if live
+        if (supabaseAdapter.isAvailable()) {
+          try {
+            const supaItems = await supabaseAdapter.filter(prop, query, sortCol, limitVal);
             if (Array.isArray(supaItems) && supaItems.length > 0) {
               supaItems.items = supaItems;
               return supaItems;
             }
-          }
-          try {
-            const res = await base44.entities[prop].filter(query, sort, limit);
-            if (Array.isArray(res) && res.length > 0) return res;
-            if (res?.items && res.items.length > 0) return res.items;
-          } catch (e) {}
-          let items = getLocalEntities(prop);
-          if (query && Object.keys(query).length > 0) {
-            items = items.filter(item => {
-              return Object.entries(query).every(([k, v]) => item[k] === v);
-            });
-          }
-          const resArray = items.slice(0, limit);
-          resArray.items = resArray;
-          return resArray;
-        },
-        async get(id) {
-          if (supabaseAdapter.isAvailable()) {
-            const supaItem = await supabaseAdapter.get(prop, id);
-            if (supaItem) return supaItem;
-          }
-          try {
-            const res = await base44.entities[prop].get(id);
-            if (res) return res;
-          } catch (e) {}
-          const items = getLocalEntities(prop);
-          return items.find(i => i.id === id) || null;
-        },
-        async create(data) {
-          const newItem = {
-            id: `${prop.toLowerCase()}_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
-            created_date: new Date().toISOString(),
-            ...data
-          };
-          if (supabaseAdapter.isAvailable()) {
-            const supaCreated = await supabaseAdapter.create(prop, data);
-            if (supaCreated) return supaCreated;
-          }
-          try {
-            const res = await base44.entities[prop].create(data);
-            if (res) return res;
-          } catch (e) {}
-          const items = getLocalEntities(prop);
-          items.unshift(newItem);
-          setLocalEntities(prop, items);
-          return newItem;
-        },
-        async update(id, data) {
-          if (supabaseAdapter.isAvailable()) {
-            const supaUpdated = await supabaseAdapter.update(prop, id, data);
-            if (supaUpdated) return supaUpdated;
-          }
-          try {
-            const res = await base44.entities[prop].update(id, data);
-            if (res) return res;
-          } catch (e) {}
-          const items = getLocalEntities(prop);
-          const idx = items.findIndex(i => i.id === id);
-          if (idx !== -1) {
-            items[idx] = { ...items[idx], ...data };
-            setLocalEntities(prop, items);
-            return items[idx];
-          }
-          return { id, ...data };
-        },
-        async delete(id) {
-          if (supabaseAdapter.isAvailable()) {
-            await supabaseAdapter.delete(prop, id);
-          }
-          try {
-            return await base44.entities[prop].delete(id);
-          } catch (e) {}
-          const items = getLocalEntities(prop);
-          const filtered = items.filter(i => i.id !== id);
-          setLocalEntities(prop, filtered);
-          return true;
+          } catch (_) {}
         }
-      };
-    }
-    return undefined;
+
+        // 2. Try Serverless API
+        if (typeof window !== 'undefined') {
+          try {
+            const qStr = encodeURIComponent(JSON.stringify(query || {}));
+            const res = await fetch(`/api/entities/${prop}?sort=${encodeURIComponent(sortCol)}&limit=${limitVal}&q=${qStr}`, {
+              headers: { 'Content-Type': 'application/json' }
+            });
+            if (res.ok) {
+              const serverData = await res.json();
+              if (Array.isArray(serverData) && serverData.length > 0) {
+                serverData.items = serverData;
+                return serverData;
+              }
+            }
+          } catch (_) {}
+        }
+
+        // 3. Fallback to LocalStorage
+        let items = getLocalEntities(prop);
+        if (query && typeof query === 'object' && Object.keys(query).length > 0) {
+          items = items.filter(item => {
+            return Object.entries(query).every(([k, v]) => {
+              if (v === undefined || v === null) return true;
+              return item[k] === v;
+            });
+          });
+        }
+        const resArray = items.slice(0, limitVal);
+        resArray.items = resArray;
+        return resArray;
+      },
+
+      async get(id) {
+        if (!id) return null;
+
+        // 1. Try Supabase if live
+        if (supabaseAdapter.isAvailable()) {
+          try {
+            const supaItem = await supabaseAdapter.get(prop, id);
+            if (supaItem && supaItem.id) return supaItem;
+          } catch (_) {}
+        }
+
+        // 2. Try Serverless API
+        if (typeof window !== 'undefined') {
+          try {
+            const res = await fetch(`/api/entities/${prop}/${encodeURIComponent(id)}`, {
+              headers: { 'Content-Type': 'application/json' }
+            });
+            if (res.ok) {
+              const serverItem = await res.json();
+              if (serverItem && typeof serverItem === 'object' && !Array.isArray(serverItem) && serverItem.id) {
+                return serverItem;
+              }
+            }
+          } catch (_) {}
+        }
+
+        // 3. Fallback to LocalStorage
+        const items = getLocalEntities(prop);
+        return items.find(i => String(i.id) === String(id) || String(i.order_id) === String(id)) || null;
+      },
+
+      async create(data) {
+        const idPrefix = prop.toLowerCase().slice(0, 3);
+        const newItem = {
+          id: `${idPrefix}_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+          created_date: new Date().toISOString(),
+          ...data
+        };
+
+        // 1. Try Supabase
+        if (supabaseAdapter.isAvailable()) {
+          try {
+            const supaCreated = await supabaseAdapter.create(prop, newItem);
+            if (supaCreated && supaCreated.id) {
+              const items = getLocalEntities(prop);
+              items.unshift(supaCreated);
+              setLocalEntities(prop, items);
+              return supaCreated;
+            }
+          } catch (_) {}
+        }
+
+        // 2. Try Serverless API
+        if (typeof window !== 'undefined') {
+          try {
+            const res = await fetch(`/api/entities/${prop}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(newItem)
+            });
+            if (res.ok) {
+              const serverItem = await res.json();
+              if (serverItem && serverItem.id) {
+                const items = getLocalEntities(prop);
+                items.unshift(serverItem);
+                setLocalEntities(prop, items);
+                return serverItem;
+              }
+            }
+          } catch (_) {}
+        }
+
+        // 3. Fallback to LocalStorage
+        const items = getLocalEntities(prop);
+        items.unshift(newItem);
+        setLocalEntities(prop, items);
+        return newItem;
+      },
+
+      async update(id, data) {
+        if (!id) return data;
+
+        // 1. Try Supabase
+        if (supabaseAdapter.isAvailable()) {
+          try {
+            const supaUpdated = await supabaseAdapter.update(prop, id, data);
+            if (supaUpdated && supaUpdated.id) {
+              const items = getLocalEntities(prop);
+              const idx = items.findIndex(i => String(i.id) === String(id));
+              if (idx !== -1) items[idx] = { ...items[idx], ...supaUpdated };
+              setLocalEntities(prop, items);
+              return supaUpdated;
+            }
+          } catch (_) {}
+        }
+
+        // 2. Try Serverless API
+        if (typeof window !== 'undefined') {
+          try {
+            const res = await fetch(`/api/entities/${prop}/${encodeURIComponent(id)}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(data)
+            });
+            if (res.ok) {
+              const serverItem = await res.json();
+              if (serverItem && serverItem.id) {
+                const items = getLocalEntities(prop);
+                const idx = items.findIndex(i => String(i.id) === String(id));
+                if (idx !== -1) items[idx] = { ...items[idx], ...serverItem };
+                setLocalEntities(prop, items);
+                return serverItem;
+              }
+            }
+          } catch (_) {}
+        }
+
+        // 3. Fallback to LocalStorage
+        const items = getLocalEntities(prop);
+        const idx = items.findIndex(i => String(i.id) === String(id));
+        if (idx !== -1) {
+          items[idx] = { ...items[idx], ...data };
+          setLocalEntities(prop, items);
+          return items[idx];
+        }
+        return { id, ...data };
+      },
+
+      async delete(id) {
+        if (!id) return true;
+
+        if (supabaseAdapter.isAvailable()) {
+          try { await supabaseAdapter.delete(prop, id); } catch (_) {}
+        }
+        if (typeof window !== 'undefined') {
+          try {
+            await fetch(`/api/entities/${prop}/${encodeURIComponent(id)}`, { method: 'DELETE' });
+          } catch (_) {}
+        }
+
+        const items = getLocalEntities(prop);
+        const filtered = items.filter(i => String(i.id) !== String(id));
+        setLocalEntities(prop, filtered);
+        return true;
+      },
+
+      async bulkCreate(itemsList = []) {
+        const created = [];
+        for (const item of itemsList) {
+          created.push(await this.create(item));
+        }
+        return created;
+      },
+
+      async count(query = {}) {
+        const items = await this.filter(query);
+        return Array.isArray(items) ? items.length : 0;
+      },
+
+      subscribe(callback) {
+        const handler = (e) => {
+          if (e.detail?.entity === prop) {
+            callback?.(e.detail);
+          }
+        };
+        if (typeof window !== 'undefined') {
+          window.addEventListener('thredo-data-updated', handler);
+          return () => window.removeEventListener('thredo-data-updated', handler);
+        }
+        return () => {};
+      }
+    };
   }
 });
 
